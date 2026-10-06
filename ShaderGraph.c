@@ -260,6 +260,17 @@ sgNodeType sgGetNodeType ( const sgGraphHandle GraphHandle, const sgNodeHandle N
 	return GetNodeFromHandle ( NodeHandle )->Type;
 	}
 
+bool sgSetNodeName ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, const char *Name )
+	{
+	if ( IsValidNode ( GraphHandle, NodeHandle ) == false )
+		return false;
+	sgNode *Node = GetNodeFromHandle ( NodeHandle );
+	if ( Node == NULL )
+		return false;
+	CopyString ( Node->Name, sizeof ( Node->Name ), Name );
+	return true;
+	}
+
 const char *sgGetNodeName ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle )
 	{
 	if ( IsValidNode ( GraphHandle, NodeHandle ) == false )

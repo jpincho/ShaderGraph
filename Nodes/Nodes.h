@@ -19,3 +19,5 @@ bool sgEmitGLSLNormalMap ( StringBuilder *Body, const sgNode *Node, const sgShad
 bool sgEmitGLSLBlinnPhong ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage );
 bool sgEmitGLSLVertexPosition ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage );
 bool sgEmitGLSLFragmentColor ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage );
+
+bool sgAppendBlinnPhongLightingSupport ( StringBuilder *Header );

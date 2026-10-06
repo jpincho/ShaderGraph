@@ -7,7 +7,7 @@ if ( NOT TARGET Platform )
     include ( FetchContent )
     FetchContent_Declare (
         Platform
-        GIT_REPOSITORY git@github.com:jpincho/Platform
+        GIT_REPOSITORY https://github.com/jpincho/Platform
         GIT_TAG main
         SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/Platform
         )

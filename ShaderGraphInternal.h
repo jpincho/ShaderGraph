@@ -39,6 +39,18 @@ struct sgNode
 	unsigned ConstantComponentCount;
 	char Swizzle[8];
 
+	union
+		{
+		struct
+			{
+			unsigned LightCount;
+			} BlinnPhong;
+		struct
+			{
+			unsigned BoneCount;
+			} Skinning;
+		};
+
 	bool UsedInShaderStage[2];// Indexed with sgShaderStage enum values
 	char TopoColor; // 0 = unvisited, 1 = visiting, 2 = visited
 	};

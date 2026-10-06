@@ -63,6 +63,7 @@ sgNodeHandle sgAddConstantVec4 ( const sgGraphHandle GraphHandle, const float X,
 sgNodeHandle sgAddIdentityMat4 ( const sgGraphHandle GraphHandle );
 sgNodeHandle sgAddTextureSample ( const sgGraphHandle GraphHandle );
 sgNodeHandle sgAddMultiply ( const sgGraphHandle GraphHandle );
+sgNodeHandle sgAddMultiplyTyped ( const sgGraphHandle GraphHandle, const sgValueType AType, const sgValueType BType );
 sgNodeHandle sgAddAddition ( const sgGraphHandle GraphHandle );
 sgNodeHandle sgAddNormalize ( const sgGraphHandle GraphHandle );
 
@@ -73,17 +74,23 @@ sgNodeHandle sgAddComposeVec4 ( const sgGraphHandle GraphHandle );
 sgNodeHandle sgAddSwizzle ( const sgGraphHandle GraphHandle, const char *Swizzle, const sgValueType InputType, const sgValueType OutputType );
 sgNodeHandle sgAddMat3Cast ( const sgGraphHandle GraphHandle );
 sgNodeHandle sgAddSkinning ( const sgGraphHandle GraphHandle );
+bool sgSetSkinningBoneCount ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, const unsigned BoneCount );
+unsigned sgGetSkinningBoneCount ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle );
 sgNodeHandle sgAddTBN ( const sgGraphHandle GraphHandle );
 sgNodeHandle sgAddNormalMap ( const sgGraphHandle GraphHandle );
 sgNodeHandle sgAddBlinnPhong ( const sgGraphHandle GraphHandle );
+bool sgSetBlinnPhongLightCount ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, const unsigned LightCount );
+unsigned sgGetBlinnPhongLightCount ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle );
 sgNodeHandle sgAddVertexPosition ( const sgGraphHandle GraphHandle );
 sgNodeHandle sgAddFragmentColor ( const sgGraphHandle GraphHandle );
+
 bool sgRemoveNode ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle );
 unsigned sgGetNodeCount ( const sgGraphHandle GraphHandle );
 sgNodeHandle sgFindNodeByIndex ( const sgGraphHandle GraphHandle, const unsigned Index );
 sgNodeHandle sgFindNodeById ( const sgGraphHandle GraphHandle, const unsigned ID );
 unsigned sgGetNodeId ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle );
 sgNodeType sgGetNodeType ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle );
+bool sgSetNodeName ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, const char *Name );
 const char *sgGetNodeName ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle );
 bool sgAddConnection ( const sgGraphHandle GraphHandle, const sgNodeHandle FromNodeHandle, const unsigned SourcePinIndex, const sgNodeHandle ToNodeHandle, const unsigned TargetPinIndex );
 bool sgRemoveConnection ( const sgGraphHandle GraphHandle, const sgNodeHandle FromNodeHandle, const unsigned SourcePinIndex, const sgNodeHandle ToNodeHandle, const unsigned TargetPinIndex );

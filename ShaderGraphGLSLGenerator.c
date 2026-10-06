@@ -127,10 +127,21 @@ static bool EmitNodeStatement ( StringBuilder *Body, const sgNode *Node, const s
 		}
 	}
 
+static bool GraphUsesNodeTypeInStage ( const sgGraph *Graph, const sgNodeType Type, const sgShaderStage Stage )
+	{
+	for ( unsigned Index = 0; Index < Graph->Nodes.Count; ++Index )
+		{
+		const sgNode *Node = PointerArray_Get ( &Graph->Nodes, Index );
+		if ( ( Node->Type == Type ) && NodeUsedInStage ( Node, Stage ) )
+			return true;
+		}
+	return false;
+	}
+
 static bool AppendDeclarations ( StringBuilder *Header, const sgGraph *Graph, const sgShaderStage Stage )
 	{
 	unsigned AttributeLocation = 0;
-	bool NeedsBones = false;
+	const sgNode *SkinningNode = NULL;
 
 	for ( unsigned Index = 0; Index < Graph->Nodes.Count; ++Index )
 		{
@@ -177,13 +188,14 @@ static bool AppendDeclarations ( StringBuilder *Header, const sgGraph *Graph, co
 			}
 		else if ( Node->Type == sgNodeType_Skinning )
 			{
-			NeedsBones = true;
+			SkinningNode = Node;
 			}
 		}
 
-	if ( NeedsBones && ( Stage == sgStage_Vertex ) )
+	if ( ( SkinningNode != NULL ) && ( Stage == sgStage_Vertex ) )
 		{
-		if ( StringBuilder_Append ( Header, "uniform mat4 uBoneMatrices[128];\n" ) == false )
+		unsigned BoneCount = sgGetSkinningBoneCount ( Graph, GetHandleFromNode ( SkinningNode ) );
+		if ( StringBuilder_Appendf ( Header, "uniform mat4 uBoneMatrices[%u];\n", BoneCount ) == false )
 			return false;
 		}
 
@@ -191,6 +203,12 @@ static bool AppendDeclarations ( StringBuilder *Header, const sgGraph *Graph, co
 		{
 		if ( StringBuilder_Append ( Header, "out vec4 FragColor;\n" ) == false )
 			return false;
+		if ( GraphUsesNodeTypeInStage ( Graph, sgNodeType_BlinnPhong, Stage ) )
+			{
+			if ( ( StringBuilder_Append ( Header, "\n" ) == false ) ||
+			        ( sgAppendBlinnPhongLightingSupport ( Header ) == false ) )
+				return false;
+			}
 		}
 
 	return true;
@@ -211,11 +229,11 @@ static bool AppendVaryingPassThrough ( StringBuilder *Body, const sgGraph *Graph
 	return true;
 	}
 
-static char *BuildShaderSource ( const sgGraph *Graph, const sgShaderStage Stage )
+static char *BuildVertexShaderSource ( const sgGraph *Graph )
 	{
 	PointerArray Ordered;
 	PointerArray_Initialize ( &Ordered );
-	if ( BuildTopoOrder ( Graph, Stage, &Ordered ) == false )
+	if ( BuildTopoOrder ( Graph, sgStage_Vertex, &Ordered ) == false )
 		{
 		PointerArray_Destroy ( &Ordered );
 		return NULL;
@@ -224,22 +242,58 @@ static char *BuildShaderSource ( const sgGraph *Graph, const sgShaderStage Stage
 	StringBuilder Source = {0};
 
 	if ( ( StringBuilder_Append ( &Source, "#version 330 core\n\n" ) == false ) ||
-	        ( AppendDeclarations ( &Source, Graph, Stage ) == false ) ||
+	        ( AppendDeclarations ( &Source, Graph, sgStage_Vertex ) == false ) ||
 	        ( StringBuilder_Append ( &Source, "\nvoid main ( )\n{\n" ) == false ) )
 		goto OnError;
 
 	for ( unsigned Index = 0; Index < Ordered.Count; ++Index )
 		{
 		const sgNode *Node = PointerArray_Get ( &Ordered, Index );
-		if ( NodeUsedInStage ( Node, Stage ) == false )
+		if ( NodeUsedInStage ( Node, sgStage_Vertex ) == false )
 			continue;
-		if ( EmitNodeStatement ( &Source, Node, Stage ) == false )
+		if ( EmitNodeStatement ( &Source, Node, sgStage_Vertex ) == false )
 			goto OnError;
 		}
 
-	if ( Stage == sgStage_Vertex )
+	if ( AppendVaryingPassThrough ( &Source, Graph ) == false )
+		goto OnError;
+
+	if ( StringBuilder_Append ( &Source, "}\n" ) == false )
+		goto OnError;
+
+	PointerArray_Destroy ( &Ordered );
+	return StringBuilder_Take ( &Source );
+
+OnError:
+	PointerArray_Destroy ( &Ordered );
+	StringBuilder_Destroy ( &Source );
+	return NULL;
+	}
+
+
+static char *BuildFragmentShaderSource ( const sgGraph *Graph )
+	{
+	PointerArray Ordered;
+	PointerArray_Initialize ( &Ordered );
+	if ( BuildTopoOrder ( Graph, sgStage_Fragment, &Ordered ) == false )
 		{
-		if ( AppendVaryingPassThrough ( &Source, Graph ) == false )
+		PointerArray_Destroy ( &Ordered );
+		return NULL;
+		}
+
+	StringBuilder Source = {0};
+
+	if ( ( StringBuilder_Append ( &Source, "#version 330 core\n\n" ) == false ) ||
+	        ( AppendDeclarations ( &Source, Graph, sgStage_Fragment ) == false ) ||
+	        ( StringBuilder_Append ( &Source, "\nvoid main ( )\n{\n" ) == false ) )
+		goto OnError;
+
+	for ( unsigned Index = 0; Index < Ordered.Count; ++Index )
+		{
+		const sgNode *Node = PointerArray_Get ( &Ordered, Index );
+		if ( NodeUsedInStage ( Node, sgStage_Fragment ) == false )
+			continue;
+		if ( EmitNodeStatement ( &Source, Node, sgStage_Fragment ) == false )
 			goto OnError;
 		}
 
@@ -277,8 +331,8 @@ bool sgGenerateGLSL ( const sgGraphHandle GraphHandle, char **OutVertexShader, c
 			Node->UsedInShaderStage[sgStage_Vertex] = true;
 		}
 
-	char *VertexShader = BuildShaderSource ( Graph, sgStage_Vertex );
-	char *FragmentShader = BuildShaderSource ( Graph, sgStage_Fragment );
+	char *VertexShader = BuildVertexShaderSource ( Graph );
+	char *FragmentShader = BuildFragmentShaderSource ( Graph );
 
 	ClearStageUsage ( Graph );
 	ClearTopoColors ( Graph );

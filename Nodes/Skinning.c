@@ -21,6 +21,27 @@ sgNodeHandle sgAddSkinning ( const sgGraphHandle GraphHandle )
 	return GetHandleFromNode ( Node );
 	}
 
+bool sgSetSkinningBoneCount ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, const unsigned BoneCount )
+	{
+	if ( IsValidNode ( GraphHandle, NodeHandle ) == false )
+		return false;
+	sgNode *Node = GetNodeFromHandle ( NodeHandle );
+	if ( Node->Type != sgNodeType_Skinning )
+		return false;
+	Node->ArrayCount = BoneCount;
+	return true;
+	}
+
+unsigned sgGetSkinningBoneCount ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle )
+	{
+	if ( IsValidNode ( GraphHandle, NodeHandle ) == false )
+		return 0;
+	sgNode *Node = GetNodeFromHandle ( NodeHandle );
+	if ( Node->Type != sgNodeType_Skinning )
+		return 0;
+	return Node->ArrayCount;
+	}
+
 bool sgEmitGLSLSkinning ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
 	{
 	char OutPos[128];
