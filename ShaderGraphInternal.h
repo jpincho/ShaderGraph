@@ -1,7 +1,8 @@
 #pragma once
 #include <Platform/Platform.h>
-#include "ShaderGraph.h"
 #include <Platform/PointerArray.h>
+#include "ShaderGraph.h"
+#include "StringBuilder.h"
 #if defined ( PLATFORM_COMPILER_GNU )
 #include <stdlib.h>
 #include <string.h>
@@ -16,6 +17,12 @@
 
 typedef struct sgNode sgNode;
 typedef struct sgConnection sgConnection;
+
+typedef enum
+	{
+	sgStage_Vertex = 0,
+	sgStage_Fragment = 1
+	} sgShaderStage;
 
 typedef struct sgInternalPin
 	{
@@ -50,6 +57,8 @@ struct sgNode
 			unsigned BoneCount;
 			} Skinning;
 		};
+	bool UsedInShaderStage[2];// Indexed with sgShaderStage enum values
+	char TopoColor; // 0 = unvisited, 1 = visiting, 2 = visited
 	};
 
 typedef struct
@@ -65,12 +74,6 @@ struct sgConnection
 	sgNode *OutputNode, *InputNode;
 	unsigned OutputPinIndex, InputPinIndex;
 	};
-
-typedef enum
-	{
-	sgStage_Vertex = 0,
-	sgStage_Fragment = 1
-	} sgShaderStage;
 
 static inline sgGraph *GetGraphFromHandle ( const sgGraphHandle GraphHandle )
 	{

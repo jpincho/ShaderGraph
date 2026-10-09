@@ -233,7 +233,7 @@ unsigned sgGetNodeCountByType ( const sgGraphHandle GraphHandle, const sgNodeTyp
 	for ( unsigned Index = 0; Index < Graph->Nodes.Count; ++Index )
 		{
 		const sgNode *Node = PointerArray_Get ( &Graph->Nodes, Index );
-		if ( Node->Type == Type )
+		if ( ( Node->Type == Type ) && ( ( Node->UsedInShaderStage[sgStage_Fragment] ) || ( Node->UsedInShaderStage[sgStage_Vertex] ) ) )
 			{
 			++NodeCount;
 			}

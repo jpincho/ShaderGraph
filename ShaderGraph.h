@@ -59,6 +59,10 @@ sgNodeHandle sgAddAttribute ( const sgGraphHandle GraphHandle, const char *Name,
 sgNodeHandle sgAddUniform ( const sgGraphHandle GraphHandle, const char *Name, const sgValueType Type );
 sgNodeHandle sgAddUniformArray ( const sgGraphHandle GraphHandle, const char *Name, const sgValueType Type, const unsigned Count );
 
+sgNodeHandle sgAddBlinnPhongNode ( const sgGraphHandle GraphHandle );
+bool sgSetBlinnPhongLightCount ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, const unsigned LightCount );
+unsigned sgGetBlinnPhongLightCount ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle );
+
 sgNodeHandle sgAddConstantFloat ( const sgGraphHandle GraphHandle, const float Value );
 sgNodeHandle sgAddConstantVec2 ( const sgGraphHandle GraphHandle, const float X, const float Y );
 sgNodeHandle sgAddConstantVec3 ( const sgGraphHandle GraphHandle, const float X, const float Y, const float Z );
@@ -97,12 +101,11 @@ const char *sgGetNodeName ( const sgGraphHandle GraphHandle, const sgNodeHandle 
 
 bool sgAddConnection ( const sgGraphHandle GraphHandle, const sgNodeHandle FromNodeHandle, const unsigned SourcePinIndex, const sgNodeHandle ToNodeHandle, const unsigned TargetPinIndex );
 bool sgRemoveConnection ( const sgGraphHandle GraphHandle, const sgNodeHandle FromNodeHandle, const unsigned SourcePinIndex, const sgNodeHandle ToNodeHandle, const unsigned TargetPinIndex );
-
 bool sgValidateGraph ( const sgGraphHandle GraphHandle );
+
+bool sgGenerateGLSL ( const sgGraphHandle GraphHandle, char **OutVertexShader, char **OutFragmentShader );
 
 const char *sgStringifyNodeType ( const sgNodeType Value );
 const char *sgStringifyValueType ( const sgValueType Value );
-
-#include "Nodes/BlinnPhong.h"
 
 END_C_DECLARATIONS
