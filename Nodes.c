@@ -276,6 +276,50 @@ sgNodeHandle sgAddMat3Cast ( const sgGraphHandle GraphHandle )
 	return GetHandleFromNode ( Node );
 	}
 
+sgNodeHandle sgAddSkinning ( const sgGraphHandle GraphHandle )
+	{
+	sgGraph *Graph = GetGraphFromHandle ( GraphHandle );
+	if ( Graph == NULL )
+		return sgNodeHandle_Invalid;
+	sgNode *Node = CreateNode ( Graph, "Skinning", sgNodeType_Skinning );
+	if ( Node == NULL )
+		return sgNodeHandle_Invalid;
+	SetPin ( &Node->Inputs[0], "Position", sgValueType_Vec3 );
+	SetPin ( &Node->Inputs[1], "Normal", sgValueType_Vec3 );
+	SetPin ( &Node->Inputs[2], "Indices", sgValueType_UVec4 );
+	SetPin ( &Node->Inputs[3], "Weights", sgValueType_Vec4 );
+	Node->InputCount = 4;
+	SetPin ( &Node->Outputs[0], "Position", sgValueType_Vec3 );
+	SetPin ( &Node->Outputs[1], "Normal", sgValueType_Vec3 );
+	Node->OutputCount = 2;
+	Node->ArrayCount = 50;// Default 50 bones
+	return GetHandleFromNode ( Node );
+	}
+
+bool sgSetSkinningBoneCount ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, const unsigned BoneCount )
+	{
+	if ( BoneCount == 0 )
+		return false;
+	if ( IsValidNode ( GraphHandle, NodeHandle ) == false )
+		return false;
+	sgNode *Node = GetNodeFromHandle ( NodeHandle );
+	if ( Node->Type != sgNodeType_Skinning )
+		return false;
+	Node->ArrayCount = BoneCount;
+	return true;
+	}
+
+unsigned sgGetSkinningBoneCount ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle )
+	{
+	if ( IsValidNode ( GraphHandle, NodeHandle ) == false )
+		return 0;
+	sgNode *Node = GetNodeFromHandle ( NodeHandle );
+	if ( Node->Type != sgNodeType_Skinning )
+		return 0;
+	return Node->ArrayCount;
+	}
+
+
 static sgValueType MultiplyOutputType ( const sgValueType A, const sgValueType B )
 	{
 	if ( ( A == sgValueType_Mat4 ) && ( B == sgValueType_Mat4 ) )

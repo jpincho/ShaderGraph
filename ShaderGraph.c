@@ -249,7 +249,7 @@ sgNodeHandle sgFindNodeByIndex ( const sgGraphHandle GraphHandle, const unsigned
 	return GetHandleFromNode ( PointerArray_Get ( &Graph->Nodes, Index ) );
 	}
 
-sgNodeHandle sgFindNodeById ( const sgGraphHandle GraphHandle, const unsigned ID )
+sgNodeHandle sgFindNodeByID ( const sgGraphHandle GraphHandle, const unsigned ID )
 	{
 	sgGraph *Graph = GetGraphFromHandle ( GraphHandle );
 	if ( Graph == NULL )

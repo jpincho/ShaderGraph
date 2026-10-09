@@ -12,22 +12,22 @@ bool AddGLSLBody_Constant ( StringBuilder *Body, const sgNode *Node, const sgSha
 	switch ( Node->Outputs[0].ValueType )
 		{
 		case sgValueType_Float:
-			return StringBuilder_Appendf ( Body, "%g", Node->ConstantValues[0] );
+			return StringBuilder_Appendf ( Body, "%g;\n", Node->ConstantValues[0] );
 		case sgValueType_Vec2:
-			return StringBuilder_Appendf ( Body, "vec2 ( %g, %g )", Node->ConstantValues[0], Node->ConstantValues[1] );
+			return StringBuilder_Appendf ( Body, "vec2 ( %g, %g );\n", Node->ConstantValues[0], Node->ConstantValues[1] );
 		case sgValueType_Vec3:
-			return StringBuilder_Appendf ( Body, "vec3 ( %g, %g, %g )",
+			return StringBuilder_Appendf ( Body, "vec3 ( %g, %g, %g );\n",
 			                               Node->ConstantValues[0], Node->ConstantValues[1], Node->ConstantValues[2] );
 		case sgValueType_Vec4:
-			return StringBuilder_Appendf ( Body, "vec4 ( %g, %g, %g, %g )",
+			return StringBuilder_Appendf ( Body, "vec4 ( %g, %g, %g, %g );\n",
 			                               Node->ConstantValues[0], Node->ConstantValues[1],
 			                               Node->ConstantValues[2], Node->ConstantValues[3] );
 		case sgValueType_Mat4:
-			return StringBuilder_Append ( Body, "mat4 ( 1.0 )" );
+			return StringBuilder_Append ( Body, "mat4 ( 1.0 );\n" );
 		default:
 			return false;
 		}
-	return StringBuilder_Append ( Body, ";\n" );
+	return false;
 	}
 
 bool AddGLSLBody_TextureSample ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )

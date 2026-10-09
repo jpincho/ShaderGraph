@@ -93,8 +93,8 @@ bool sgRemoveNode ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHand
 unsigned sgGetNodeCount ( const sgGraphHandle GraphHandle );
 unsigned sgGetNodeCountByType ( const sgGraphHandle GraphHandle, const sgNodeType Type );
 sgNodeHandle sgFindNodeByIndex ( const sgGraphHandle GraphHandle, const unsigned Index );
-sgNodeHandle sgFindNodeById ( const sgGraphHandle GraphHandle, const unsigned ID );
-unsigned sgGetNodeId ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle );
+sgNodeHandle sgFindNodeByID ( const sgGraphHandle GraphHandle, const unsigned ID );
+unsigned sgGetNodeID ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle );
 sgNodeType sgGetNodeType ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle );
 bool sgSetNodeName ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, const char *Name );
 const char *sgGetNodeName ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle );

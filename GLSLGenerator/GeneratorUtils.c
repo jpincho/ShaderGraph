@@ -35,6 +35,7 @@ const char *sgValueTypeToGLSL ( const sgValueType Type )
 
 bool sgGetOutputSymbol ( const sgNode *Node, const unsigned PinIndex, const sgShaderStage Stage, char *Buffer, const unsigned BufferSize )
 	{
+	UNUSED ( Stage );
 	if ( ( Node == NULL ) || ( Buffer == NULL ) || ( BufferSize == 0 ) || ( PinIndex >= Node->OutputCount ) )
 		{
 		if ( ( Buffer != NULL ) && ( BufferSize > 0 ) )
@@ -43,15 +44,7 @@ bool sgGetOutputSymbol ( const sgNode *Node, const unsigned PinIndex, const sgSh
 		}
 	if ( Node->Type == sgNodeType_Attribute )
 		{
-		switch ( Stage )
-			{
-			case sgStage_Vertex:
-				snprintf ( Buffer, BufferSize, "v_%s", Node->Name );
-				break;
-			case sgStage_Fragment:
-				snprintf ( Buffer, BufferSize, "f_%s", Node->Name );
-				break;
-			}
+		snprintf ( Buffer, BufferSize, "v_%s", Node->Name );
 		return true;
 		}
 	if ( Node->Type == sgNodeType_Uniform )
