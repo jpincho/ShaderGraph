@@ -194,112 +194,84 @@ sgNodeHandle sgAddComposeVector ( const sgGraphHandle GraphHandle, const sgValue
 	return GetHandleFromNode ( Node );
 	}
 
-sgNodeHandle sgAddConstantFloat ( const sgGraphHandle GraphHandle, const float Value )
+sgNodeHandle sgAddConstant ( const sgGraphHandle GraphHandle, const sgValue Value )
 	{
 	sgGraph *Graph = GetGraphFromHandle ( GraphHandle );
 	if ( Graph == NULL )
 		return sgNodeHandle_Invalid;
-	char Name[SG_MAX_NODE_NAME_LENGTH];
-	snprintf ( Name, sizeof ( Name ), "%g", Value );
-	sgNode *Node = CreateNode ( Graph, Name, sgNodeType_Constant );
+
+	sgNode *Node = CreateNode ( Graph, NULL, sgNodeType_Constant );
 	if ( Node == NULL )
 		return sgNodeHandle_Invalid;
-	Node->ConstantValue.Float = Value;
-	Node->ConstantValue.Type = sgValueType_Float;
-	SetPin ( &Node->Outputs[0], "Value", sgValueType_Float );
+	Node->ConstantValue.Type = Value.Type;
+	if ( sgSetConstantNodeValue ( GraphHandle, GetHandleFromNode ( Node ), Value ) == false )
+		{
+		sgRemoveNode ( GraphHandle, GetHandleFromNode ( Node ) );
+		return sgNodeHandle_Invalid;
+		}
+	SetPin ( &Node->Outputs[0], "Value", Value.Type );
 	Node->OutputCount = 1;
 	return GetHandleFromNode ( Node );
+	}
+
+sgNodeHandle sgAddConstantFloat ( const sgGraphHandle GraphHandle, const float Value )
+	{
+	sgValue NewValue;
+	memset ( &NewValue, 0, sizeof ( NewValue ) );
+	NewValue.Float = Value;
+	NewValue.Type = sgValueType_Float;
+	return sgAddConstant ( GraphHandle, NewValue );
 	}
 
 sgNodeHandle sgAddConstantUnsigned ( const sgGraphHandle GraphHandle, const unsigned Value )
 	{
-	sgGraph *Graph = GetGraphFromHandle ( GraphHandle );
-	if ( Graph == NULL )
-		return sgNodeHandle_Invalid;
-	char Name[SG_MAX_NODE_NAME_LENGTH];
-	snprintf ( Name, sizeof ( Name ), "%uu", Value );
-	sgNode *Node = CreateNode ( Graph, Name, sgNodeType_Constant );
-	if ( Node == NULL )
-		return sgNodeHandle_Invalid;
-	Node->ConstantValue.Unsigned = Value;
-	Node->ConstantValue.Type = sgValueType_Unsigned;
-	SetPin ( &Node->Outputs[0], "Value", sgValueType_Unsigned );
-	Node->OutputCount = 1;
-	return GetHandleFromNode ( Node );
+	sgValue NewValue;
+	memset ( &NewValue, 0, sizeof ( NewValue ) );
+	NewValue.Unsigned = Value;
+	NewValue.Type = sgValueType_Unsigned;
+	return sgAddConstant ( GraphHandle, NewValue );
 	}
 
 sgNodeHandle sgAddConstantVec2 ( const sgGraphHandle GraphHandle, const float X, const float Y )
 	{
-	sgGraph *Graph = GetGraphFromHandle ( GraphHandle );
-	if ( Graph == NULL )
-		return sgNodeHandle_Invalid;
-	char Name[SG_MAX_NODE_NAME_LENGTH];
-	snprintf ( Name, sizeof ( Name ), "vec2 ( %g, %g )", X, Y );
-	sgNode *Node = CreateNode ( Graph, Name, sgNodeType_Constant );
-	if ( Node == NULL )
-		return sgNodeHandle_Invalid;
-	Node->ConstantValue.Vec2[0] = X;
-	Node->ConstantValue.Vec2[1] = Y;
-	Node->ConstantValue.Type = sgValueType_Vec2;
-	SetPin ( &Node->Outputs[0], "Value", sgValueType_Vec2 );
-	Node->OutputCount = 1;
-	return GetHandleFromNode ( Node );
+	sgValue NewValue;
+	memset ( &NewValue, 0, sizeof ( NewValue ) );
+	NewValue.Vec2[0] = X;
+	NewValue.Vec2[1] = Y;
+	NewValue.Type = sgValueType_Vec2;
+	return sgAddConstant ( GraphHandle, NewValue );
 	}
 
 sgNodeHandle sgAddConstantVec3 ( const sgGraphHandle GraphHandle, const float X, const float Y, const float Z )
 	{
-	sgGraph *Graph = GetGraphFromHandle ( GraphHandle );
-	if ( Graph == NULL )
-		return sgNodeHandle_Invalid;
-	char Name[SG_MAX_NODE_NAME_LENGTH];
-	snprintf ( Name, sizeof ( Name ), "vec3 ( %g, %g, %g )", X, Y, Z );
-	sgNode *Node = CreateNode ( Graph, Name, sgNodeType_Constant );
-	if ( Node == NULL )
-		return sgNodeHandle_Invalid;
-	Node->ConstantValue.Vec3[0] = X;
-	Node->ConstantValue.Vec3[1] = Y;
-	Node->ConstantValue.Vec3[2] = Z;
-	Node->ConstantValue.Type = sgValueType_Vec3;
-	SetPin ( &Node->Outputs[0], "Value", sgValueType_Vec3 );
-	Node->OutputCount = 1;
-	return GetHandleFromNode ( Node );
+	sgValue NewValue;
+	memset ( &NewValue, 0, sizeof ( NewValue ) );
+	NewValue.Vec3[0] = X;
+	NewValue.Vec3[1] = Y;
+	NewValue.Vec3[2] = Z;
+	NewValue.Type = sgValueType_Vec3;
+	return sgAddConstant ( GraphHandle, NewValue );
 	}
 
 sgNodeHandle sgAddConstantVec4 ( const sgGraphHandle GraphHandle, const float X, const float Y, const float Z, const float W )
 	{
-	sgGraph *Graph = GetGraphFromHandle ( GraphHandle );
-	if ( Graph == NULL )
-		return sgNodeHandle_Invalid;
-	char Name[SG_MAX_NODE_NAME_LENGTH];
-	snprintf ( Name, sizeof ( Name ), "vec4 ( %g, %g, %g, %g )", X, Y, Z, W );
-	sgNode *Node = CreateNode ( Graph, Name, sgNodeType_Constant );
-	if ( Node == NULL )
-		return sgNodeHandle_Invalid;
-	Node->ConstantValue.Vec4[0] = X;
-	Node->ConstantValue.Vec4[1] = Y;
-	Node->ConstantValue.Vec4[2] = Z;
-	Node->ConstantValue.Vec4[3] = W;
-	Node->ConstantValue.Type = sgValueType_Vec4;
-	SetPin ( &Node->Outputs[0], "Value", sgValueType_Vec4 );
-	Node->OutputCount = 1;
-	return GetHandleFromNode ( Node );
+	sgValue NewValue;
+	memset ( &NewValue, 0, sizeof ( NewValue ) );
+	NewValue.Vec4[0] = X;
+	NewValue.Vec4[1] = Y;
+	NewValue.Vec4[2] = Z;
+	NewValue.Vec4[3] = W;
+	NewValue.Type = sgValueType_Vec4;
+	return sgAddConstant ( GraphHandle, NewValue );
 	}
 
 sgNodeHandle sgAddIdentityMat4 ( const sgGraphHandle GraphHandle )
 	{
-	sgGraph *Graph = GetGraphFromHandle ( GraphHandle );
-	if ( Graph == NULL )
-		return sgNodeHandle_Invalid;
-	sgNode *Node = CreateNode ( Graph, "mat4 ( 1.0 )", sgNodeType_Constant );
-	if ( Node == NULL )
-		return sgNodeHandle_Invalid;
-	for ( unsigned Index = 0; Index < 16; ++Index )
-		Node->ConstantValue.Matrix4[Index] = 0.0f;
-	Node->ConstantValue.Matrix4[0] = Node->ConstantValue.Matrix4[5] = Node->ConstantValue.Matrix4[10] = Node->ConstantValue.Matrix4[15] = 1.0f;
-	Node->ConstantValue.Type = sgValueType_Mat4;
-	SetPin ( &Node->Outputs[0], "Value", sgValueType_Mat4 );
-	Node->OutputCount = 1;
-	return GetHandleFromNode ( Node );
+	sgValue NewValue;
+	memset ( &NewValue, 0, sizeof ( NewValue ) );
+	NewValue.Matrix4[0] = NewValue.Matrix4[5] = NewValue.Matrix4[10] = NewValue.Matrix4[15] = 1.0f;
+	NewValue.Type = sgValueType_Mat4;
+	return sgAddConstant ( GraphHandle, NewValue );
 	}
 
 bool sgSetConstantNodeValue ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, const sgValue Value )
@@ -310,9 +282,56 @@ bool sgSetConstantNodeValue ( const sgGraphHandle GraphHandle, const sgNodeHandl
 	sgNode *Node = GetNodeFromHandle ( NodeHandle );
 	if ( Node->Type != sgNodeType_Constant )
 		return false;
-	if ( Node->ConstantValue.Type != Value.Type )
+	switch ( Value.Type )
+		{
+		case sgValueType_Float:
+			snprintf ( Node->Name, sizeof ( Node->Name ), "%g", Value.Float );
+			break;
+		case sgValueType_Vec2:
+			snprintf ( Node->Name, sizeof ( Node->Name ), "vec2 ( %g, %g )", Value.Vec2[0], Value.Vec2[1] );
+			break;
+		case sgValueType_Vec3:
+			snprintf ( Node->Name, sizeof ( Node->Name ), "vec3 ( %g, %g, %g )", Value.Vec3[0], Value.Vec3[1], Value.Vec3[2] );
+			break;
+		case sgValueType_Vec4:
+			snprintf ( Node->Name, sizeof ( Node->Name ), "vec4 ( %g, %g, %g, %g )", Value.Vec4[0], Value.Vec4[1], Value.Vec4[2], Value.Vec4[3] );
+			break;
+		case sgValueType_Unsigned:
+			snprintf ( Node->Name, sizeof ( Node->Name ), "%uu", Value.Unsigned );
+			break;
+		case sgValueType_UVec2:
+			snprintf ( Node->Name, sizeof ( Node->Name ), "uvec2 ( %uu, %uu )", Value.UVec2[0], Value.UVec2[1] );
+			break;
+		case sgValueType_UVec3:
+			snprintf ( Node->Name, sizeof ( Node->Name ), "uvec3 ( %uu, %uu, %uu )", Value.UVec3[0], Value.UVec3[1], Value.UVec3[2] );
+			break;
+		case sgValueType_UVec4:
+			snprintf ( Node->Name, sizeof ( Node->Name ), "uvec4 ( %uu, %uu, %uu, %uu )", Value.UVec4[0], Value.UVec4[1], Value.UVec4[2], Value.UVec4[3] );
+			break;
+		case sgValueType_Mat3:
+			snprintf ( Node->Name, sizeof ( Node->Name ), "mat3" );
+			break;
+		case sgValueType_Mat4:
+			snprintf ( Node->Name, sizeof ( Node->Name ), "mat4" );
+			break;
+		default:
+			LOG_ERROR ( "Unhandled value type" );
+			return false;
+		}
+	if ( CopyValue ( &Value, &Node->ConstantValue ) == false )
 		return false;
-	return CopyValue ( &Value, &Node->ConstantValue );
+	return true;
+	}
+
+bool sgGetConstantNodeValue ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, sgValue *Value )
+	{
+	if ( IsValidNode ( GraphHandle, NodeHandle ) == false )
+		return false;
+
+	sgNode *Node = GetNodeFromHandle ( NodeHandle );
+	if ( Node->Type != sgNodeType_Constant )
+		return false;
+	return CopyValue ( &Node->ConstantValue, Value );
 	}
 
 sgNodeHandle sgAddFragmentColor ( const sgGraphHandle GraphHandle )

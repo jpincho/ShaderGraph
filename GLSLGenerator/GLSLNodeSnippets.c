@@ -82,6 +82,20 @@ bool AddGLSLBody_Constant ( StringBuilder *Body, const sgNode *Node, const sgSha
 		case sgValueType_Unsigned:
 			WroteValue = StringBuilder_Appendf ( Body, "%uu", Node->ConstantValue.Unsigned );
 			break;
+		case sgValueType_UVec2:
+			WroteValue = StringBuilder_Appendf ( Body, "uvec2 ( %uu, %uu )", Node->ConstantValue.UVec2[0], Node->ConstantValue.UVec2[1] );
+			break;
+		case sgValueType_UVec3:
+			WroteValue = StringBuilder_Appendf ( Body, "uvec3 ( %uu, %uu, %uu )", Node->ConstantValue.UVec3[0], Node->ConstantValue.UVec3[1], Node->ConstantValue.UVec3[2] );
+			break;
+		case sgValueType_UVec4:
+			WroteValue = StringBuilder_Appendf ( Body, "uvec4 ( %uu, %uu, %uu, %uu )",
+			                                    Node->ConstantValue.UVec4[0], Node->ConstantValue.UVec4[1],
+			                                    Node->ConstantValue.UVec4[2], Node->ConstantValue.UVec4[3] );
+			break;
+		case sgValueType_Mat3:
+			WroteValue = AppendGLSLFloats ( Body, Node->ConstantValue.Matrix3, 9, "mat3 ( ", " )" );
+			break;
 		case sgValueType_Vec2:
 			WroteValue = AppendGLSLFloats ( Body, Node->ConstantValue.Vec2, 2, "vec2 ( ", " )" );
 			break;

@@ -81,14 +81,16 @@ sgNodeHandle sgAddBlinnPhongNode ( const sgGraphHandle GraphHandle );
 bool sgSetBlinnPhongLightCount ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, const unsigned LightCount );
 unsigned sgGetBlinnPhongLightCount ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle );
 
+sgNodeHandle sgAddConstant ( const sgGraphHandle GraphHandle, const sgValue Value );
 sgNodeHandle sgAddConstantFloat ( const sgGraphHandle GraphHandle, const float Value );
 sgNodeHandle sgAddConstantUnsigned ( const sgGraphHandle GraphHandle, const unsigned Value );
 sgNodeHandle sgAddConstantVec2 ( const sgGraphHandle GraphHandle, const float X, const float Y );
 sgNodeHandle sgAddConstantVec3 ( const sgGraphHandle GraphHandle, const float X, const float Y, const float Z );
 sgNodeHandle sgAddConstantVec4 ( const sgGraphHandle GraphHandle, const float X, const float Y, const float Z, const float W );
 sgNodeHandle sgAddIdentityMat4 ( const sgGraphHandle GraphHandle );
-
 bool sgSetConstantNodeValue ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, const sgValue Value );
+bool sgGetConstantNodeValue ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, sgValue *Value );
+
 sgNodeHandle sgAddTextureSample ( const sgGraphHandle GraphHandle );
 sgNodeHandle sgAddMultiplication ( const sgGraphHandle GraphHandle );
 sgNodeHandle sgAddMultiplicationTyped ( const sgGraphHandle GraphHandle, const sgValueType AType, const sgValueType BType );

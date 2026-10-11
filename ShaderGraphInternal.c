@@ -49,6 +49,7 @@ bool CopyValue ( const sgValue *Origin, sgValue *Destination )
 	{
 	if ( ( Origin == NULL ) || ( Destination == NULL ) )
 		return false;
+	memset ( Destination, 0, sizeof ( sgValue ) );
 	switch ( Origin->Type )
 		{
 		case sgValueType_Float:
