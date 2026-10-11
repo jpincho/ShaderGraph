@@ -22,7 +22,7 @@ int main ( void )
 	sgNodeHandle SwizzleY = sgAddSwizzle ( Graph, "y", sgValueType_Vec3, sgValueType_Float );
 	sgNodeHandle SwizzleZ = sgAddSwizzle ( Graph, "z", sgValueType_Vec3, sgValueType_Float );
 	sgNodeHandle One = sgAddConstantFloat ( Graph, 1.0f );
-	sgNodeHandle Compose = sgAddComposeVec4 ( Graph );
+	sgNodeHandle Compose = sgAddComposeVector ( Graph, sgValueType_Float, 4 );
 	sgNodeHandle VertexPosition = sgAddVertexPosition ( Graph );
 	sgNodeHandle FragmentColor = sgAddFragmentColor ( Graph );
 	sgNodeHandle Color = sgAddConstantVec4 ( Graph, 0.2f, 0.4f, 0.6f, 1.0f );

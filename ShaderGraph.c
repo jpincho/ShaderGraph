@@ -22,134 +22,6 @@ sgNode *CreateNode ( sgGraph *Graph, const char *Name, const sgNodeType Type )
 	return NewNode;
 	}
 
-static void DestroyNodePinArrays ( sgNode *Node )
-	{
-	if ( Node == NULL )
-		return;
-	for ( unsigned PinIndex = 0; PinIndex < Node->InputCount; ++PinIndex )
-		PointerArray_Destroy ( &Node->Inputs[PinIndex].OutputConnections );
-	for ( unsigned PinIndex = 0; PinIndex < Node->OutputCount; ++PinIndex )
-		PointerArray_Destroy ( &Node->Outputs[PinIndex].OutputConnections );
-	}
-
-static void RemoveConnectionAtIndex ( sgGraph *Graph, const unsigned Index )
-	{
-	sgConnection *Connection = ( sgConnection * ) PointerArray_Get ( &Graph->Connections, Index );
-	sgNode *OutputNode = Connection->OutputNode;
-	sgNode *InputNode = Connection->InputNode;
-
-	if ( ( InputNode != NULL ) && ( Connection->InputPinIndex < InputNode->InputCount ) &&
-	        ( InputNode->Inputs[Connection->InputPinIndex].InputConnection == Connection ) )
-		{
-		InputNode->Inputs[Connection->InputPinIndex].InputConnection = NULL;
-		}
-
-	if ( ( OutputNode != NULL ) && ( Connection->OutputPinIndex < OutputNode->OutputCount ) )
-		{
-		const int ConnectionIndex = PointerArray_Find ( &OutputNode->Outputs[Connection->OutputPinIndex].OutputConnections, Connection );
-		if ( ConnectionIndex != -1 )
-			PointerArray_RemoveAt ( &OutputNode->Outputs[Connection->OutputPinIndex].OutputConnections, ( unsigned ) ConnectionIndex );
-		}
-
-	free ( Connection );
-	PointerArray_RemoveAt ( &Graph->Connections, Index );
-	}
-
-static void RemoveAllConnectionsAtNode ( sgGraph *Graph, const sgNode *Target )
-	{
-	for ( unsigned Index = 0; Index < Graph->Connections.Count; ++Index )
-		{
-		sgConnection *Connection = ( sgConnection * ) PointerArray_Get ( &Graph->Connections, Index );
-		if ( ( Connection->OutputNode == Target ) || ( Connection->InputNode == Target ) )
-			{
-			RemoveConnectionAtIndex ( Graph, Index );
-			--Index;
-			}
-		}
-	}
-
-static bool CanReachForward ( const sgNode *From, const sgNode *Target, PointerArray *Visited )
-	{
-	if ( ( From == NULL ) || ( Target == NULL ) )
-		return false;
-	if ( From == Target )
-		return true;
-	if ( PointerArray_Find ( Visited, ( void * ) From ) != -1 )
-		return false;
-	if ( PointerArray_AddAtEnd ( Visited, ( void * ) From ) == false )
-		return false;
-
-	for ( unsigned PinIndex = 0; PinIndex < From->OutputCount; ++PinIndex )
-		{
-		const PointerArray *Outputs = &From->Outputs[PinIndex].OutputConnections;
-		for ( unsigned ConnIndex = 0; ConnIndex < Outputs->Count; ++ConnIndex )
-			{
-			const sgConnection *Connection = ( sgConnection * ) PointerArray_Get ( Outputs, ConnIndex );
-			if ( CanReachForward ( Connection->InputNode, Target, Visited ) )
-				return true;
-			}
-		}
-	return false;
-	}
-
-static bool WouldCreateCycle ( const sgNode *Source, const sgNode *Destination )
-	{
-	if ( Source == Destination )
-		return true;
-	PointerArray Visited;
-	PointerArray_Initialize ( &Visited );
-	const bool Reachable = CanReachForward ( Destination, Source, &Visited );
-	PointerArray_Destroy ( &Visited );
-	return Reachable;
-	}
-
-static bool NodeInputsConnected ( const sgNode *Node )
-	{
-	for ( unsigned PinIndex = 0; PinIndex < Node->InputCount; ++PinIndex )
-		{
-		if ( Node->Inputs[PinIndex].InputConnection == NULL )
-			return false;
-		}
-	return true;
-	}
-
-static bool ValidateReachableSubgraph ( const sgNode *Node, PointerArray *Visiting, PointerArray *Visited )
-	{
-	if ( Node == NULL )
-		return false;
-	if ( PointerArray_Find ( Visited, ( void * ) Node ) != -1 )
-		return true;
-	if ( PointerArray_Find ( Visiting, ( void * ) Node ) != -1 )
-		{
-		LOG_ERROR ( "Cycle detected involving node '%s'", Node->Name );
-		return false;
-		}
-	if ( PointerArray_AddAtEnd ( Visiting, ( void * ) Node ) == false )
-		return false;
-
-	if ( NodeInputsConnected ( Node ) == false )
-		{
-		LOG_ERROR ( "Node '%s' has unconnected inputs", Node->Name );
-		PointerArray_RemoveAt ( Visiting, Visiting->Count - 1 );
-		return false;
-		}
-
-	for ( unsigned PinIndex = 0; PinIndex < Node->InputCount; ++PinIndex )
-		{
-		const sgConnection *Connection = Node->Inputs[PinIndex].InputConnection;
-		if ( ValidateReachableSubgraph ( Connection->OutputNode, Visiting, Visited ) == false )
-			{
-			PointerArray_RemoveAt ( Visiting, Visiting->Count - 1 );
-			return false;
-			}
-		}
-
-	PointerArray_RemoveAt ( Visiting, Visiting->Count - 1 );
-	if ( PointerArray_AddAtEnd ( Visited, ( void * ) Node ) == false )
-		return false;
-	return true;
-	}
-
 sgGraphHandle sgCreate ( void )
 	{
 	sgGraph *Graph = calloc ( 1, sizeof ( sgGraph ) );
@@ -233,10 +105,8 @@ unsigned sgGetNodeCountByType ( const sgGraphHandle GraphHandle, const sgNodeTyp
 	for ( unsigned Index = 0; Index < Graph->Nodes.Count; ++Index )
 		{
 		const sgNode *Node = PointerArray_Get ( &Graph->Nodes, Index );
-		if ( ( Node->Type == Type ) && ( ( Node->UsedInShaderStage[sgStage_Fragment] ) || ( Node->UsedInShaderStage[sgStage_Vertex] ) ) )
-			{
+		if ( Node->Type == Type )
 			++NodeCount;
-			}
 		}
 	return NodeCount;
 	}
@@ -279,11 +149,18 @@ sgNodeType sgGetNodeType ( const sgGraphHandle GraphHandle, const sgNodeHandle N
 
 bool sgSetNodeName ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, const char *Name )
 	{
-	if ( IsValidNode ( GraphHandle, NodeHandle ) == false )
+	if ( ( IsValidNode ( GraphHandle, NodeHandle ) == false ) || ( Name == NULL ) || ( Name[0] == '\0' ) )
 		return false;
+	sgGraph *Graph = GetGraphFromHandle ( GraphHandle );
 	sgNode *Node = GetNodeFromHandle ( NodeHandle );
-	if ( Node == NULL )
-		return false;
+	if ( ( Node->Type == sgNodeType_Attribute ) || ( Node->Type == sgNodeType_Uniform ) )
+		{
+		if ( IsTakenShaderName ( Graph, Name, Node ) )
+			{
+			LOG_ERROR ( "Shader name '%s' is already used", Name );
+			return false;
+			}
+		}
 	CopyString ( Node->Name, sizeof ( Node->Name ), Name );
 	return true;
 	}
@@ -327,7 +204,13 @@ bool sgAddConnection ( const sgGraphHandle GraphHandle, const sgNodeHandle Sourc
 		LOG_ERROR ( "Destination pin is already connected" );
 		return false;
 		}
-	if ( WouldCreateCycle ( SourceNode, DestinationNode ) )
+	const int CycleCheck = WouldCreateCycle ( SourceNode, DestinationNode );
+	if ( CycleCheck < 0 )
+		{
+		LOG_ERROR ( "Failed to check whether the connection would create a cycle" );
+		return false;
+		}
+	if ( CycleCheck > 0 )
 		{
 		LOG_ERROR ( "Connection would create a cycle" );
 		return false;

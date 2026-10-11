@@ -52,6 +52,24 @@ typedef enum
 	sgValueType_Void
 	} sgValueType;
 
+typedef struct
+	{
+	union
+		{
+		float Matrix3[9];
+		float Matrix4[16];
+		float Float;
+		float Vec2[2];
+		float Vec3[3];
+		float Vec4[4];
+		unsigned Unsigned;
+		unsigned UVec2[2];
+		unsigned UVec3[3];
+		unsigned UVec4[4];
+		};
+	sgValueType Type;
+	} sgValue;
+
 sgGraphHandle sgCreate ( void );
 void sgClear ( const sgGraphHandle GraphHandle );
 void sgDestroy ( const sgGraphHandle GraphHandle );
@@ -64,21 +82,20 @@ bool sgSetBlinnPhongLightCount ( const sgGraphHandle GraphHandle, const sgNodeHa
 unsigned sgGetBlinnPhongLightCount ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle );
 
 sgNodeHandle sgAddConstantFloat ( const sgGraphHandle GraphHandle, const float Value );
+sgNodeHandle sgAddConstantUnsigned ( const sgGraphHandle GraphHandle, const unsigned Value );
 sgNodeHandle sgAddConstantVec2 ( const sgGraphHandle GraphHandle, const float X, const float Y );
 sgNodeHandle sgAddConstantVec3 ( const sgGraphHandle GraphHandle, const float X, const float Y, const float Z );
 sgNodeHandle sgAddConstantVec4 ( const sgGraphHandle GraphHandle, const float X, const float Y, const float Z, const float W );
 sgNodeHandle sgAddIdentityMat4 ( const sgGraphHandle GraphHandle );
 
+bool sgSetConstantNodeValue ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle, const sgValue Value );
 sgNodeHandle sgAddTextureSample ( const sgGraphHandle GraphHandle );
 sgNodeHandle sgAddMultiplication ( const sgGraphHandle GraphHandle );
 sgNodeHandle sgAddMultiplicationTyped ( const sgGraphHandle GraphHandle, const sgValueType AType, const sgValueType BType );
 sgNodeHandle sgAddAddition ( const sgGraphHandle GraphHandle );
+sgNodeHandle sgAddAdditionTyped ( const sgGraphHandle GraphHandle, const sgValueType AType, const sgValueType BType );
 sgNodeHandle sgAddNormalize ( const sgGraphHandle GraphHandle );
-
-sgNodeHandle sgAddComposeVec2 ( const sgGraphHandle GraphHandle );
-sgNodeHandle sgAddComposeVec3 ( const sgGraphHandle GraphHandle );
-sgNodeHandle sgAddComposeVec4 ( const sgGraphHandle GraphHandle );
-
+sgNodeHandle sgAddComposeVector ( const sgGraphHandle GraphHandle, const sgValueType Type, const unsigned ComponentCount );
 sgNodeHandle sgAddSwizzle ( const sgGraphHandle GraphHandle, const char *Swizzle, const sgValueType InputType, const sgValueType OutputType );
 sgNodeHandle sgAddMat3Cast ( const sgGraphHandle GraphHandle );
 sgNodeHandle sgAddSkinning ( const sgGraphHandle GraphHandle );

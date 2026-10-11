@@ -1,5 +1,7 @@
 #include "GeneratorUtils.h"
 #include <Platform/Logger.h>
+#include <stdio.h>
+#include <string.h>
 
 const char *sgValueTypeToGLSL ( const sgValueType Type )
 	{
@@ -33,9 +35,19 @@ const char *sgValueTypeToGLSL ( const sgValueType Type )
 		}
 	}
 
-bool sgGetOutputSymbol ( const sgNode *Node, const unsigned PinIndex, const sgShaderStage Stage, char *Buffer, const unsigned BufferSize )
+static bool SymbolFits ( char *Buffer, const unsigned BufferSize, const int Written )
 	{
-	UNUSED ( Stage );
+	if ( ( Written < 0 ) || ( ( unsigned ) Written >= BufferSize ) )
+		{
+		if ( BufferSize > 0 )
+			Buffer[0] = '\0';
+		return false;
+		}
+	return true;
+	}
+
+bool GetOutputSymbol ( const sgNode *Node, const unsigned PinIndex, const sgShaderStage Stage, char *Buffer, const unsigned BufferSize )
+	{
 	if ( ( Node == NULL ) || ( Buffer == NULL ) || ( BufferSize == 0 ) || ( PinIndex >= Node->OutputCount ) )
 		{
 		if ( ( Buffer != NULL ) && ( BufferSize > 0 ) )
@@ -44,36 +56,62 @@ bool sgGetOutputSymbol ( const sgNode *Node, const unsigned PinIndex, const sgSh
 		}
 	if ( Node->Type == sgNodeType_Attribute )
 		{
-		snprintf ( Buffer, BufferSize, "v_%s", Node->Name );
-		return true;
+		if ( Stage == sgStage_Fragment )
+			return SymbolFits ( Buffer, BufferSize, snprintf ( Buffer, BufferSize, "v_%s", Node->Name ) );
+		return SymbolFits ( Buffer, BufferSize, snprintf ( Buffer, BufferSize, "%s", Node->Name ) );
 		}
 	if ( Node->Type == sgNodeType_Uniform )
 		{
-		snprintf ( Buffer, BufferSize, "u_%s", Node->Name );
-		return true;
+		if ( Node->ArrayCount == 0 )
+			return SymbolFits ( Buffer, BufferSize, snprintf ( Buffer, BufferSize, "%s", Node->Name ) );
+
+		const sgConnection *IndexConnection = ( Node->InputCount > 0 ) ? Node->Inputs[0].InputConnection : NULL;
+		if ( ( IndexConnection == NULL ) || ( IndexConnection->OutputNode == NULL ) )
+			{
+			Buffer[0] = '\0';
+			return false;
+			}
+
+		unsigned ConstantIndex = IndexConnection->OutputNode->ConstantValue.Unsigned;
+		if ( ConstantIndex >= Node->ArrayCount )
+			{
+			LOG_ERROR ( "Uniform array '%s' index %u is outside the array", Node->Name, ConstantIndex );
+			Buffer[0] = '\0';
+			return false;
+			}
+		if ( Node->Outputs[0].ValueType == sgValueType_Sampler2D )
+			{
+			return SymbolFits ( Buffer, BufferSize, snprintf ( Buffer, BufferSize, "%s[%u]", Node->Name, ConstantIndex ) );
+			}
+
+		char Index[128];
+		if ( GetInputSymbol ( Node, 0, Stage, Index, sizeof ( Index ) ) == false )
+			{
+			Buffer[0] = '\0';
+			return false;
+			}
+		return SymbolFits ( Buffer, BufferSize, snprintf ( Buffer, BufferSize, "%s[int ( %s )]", Node->Name, Index ) );
 		}
 	if ( Node->OutputCount > 1 )
-		snprintf ( Buffer, BufferSize, "n%u_%s", Node->NodeID, Node->Outputs[PinIndex].PinName );
-	else
-		snprintf ( Buffer, BufferSize, "n%u", Node->NodeID );
-	return true;
+		return SymbolFits ( Buffer, BufferSize, snprintf ( Buffer, BufferSize, "n%u_%s", Node->NodeID, Node->Outputs[PinIndex].PinName ) );
+	return SymbolFits ( Buffer, BufferSize, snprintf ( Buffer, BufferSize, "n%u", Node->NodeID ) );
 	}
 
-bool sgGetInputSymbol ( const sgNode *Node, const unsigned PinIndex, const sgShaderStage Stage, char *Buffer, const unsigned BufferSize )
+bool GetInputSymbol ( const sgNode *Node, const unsigned PinIndex, const sgShaderStage Stage, char *Buffer, const unsigned BufferSize )
 	{
 	if ( ( Node == NULL ) || ( PinIndex >= Node->InputCount ) )
 		return false;
 	const sgConnection *Connection = Node->Inputs[PinIndex].InputConnection;
 	if ( Connection == NULL )
 		return false;
-	return sgGetOutputSymbol ( Connection->OutputNode, Connection->OutputPinIndex, Stage, Buffer, BufferSize );
+	return GetOutputSymbol ( Connection->OutputNode, Connection->OutputPinIndex, Stage, Buffer, BufferSize );
 	}
 
-bool sgLoadNodeInputs ( const sgNode *Node, const sgShaderStage Stage, char Inputs[SG_MAX_INPUTS][128] )
+bool LoadNodeInputs ( const sgNode *Node, const sgShaderStage Stage, char Inputs[SG_MAX_INPUTS][128] )
 	{
 	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
 		{
-		if ( sgGetInputSymbol ( Node, InputIndex, Stage, Inputs[InputIndex], sizeof ( Inputs[InputIndex] ) ) == false )
+		if ( GetInputSymbol ( Node, InputIndex, Stage, Inputs[InputIndex], sizeof ( Inputs[InputIndex] ) ) == false )
 			return false;
 		}
 	return true;
@@ -85,29 +123,13 @@ bool GenerateVarNameForStage ( const char *Variable, const sgNodeType NodeType, 
 		{
 		case sgStage_Vertex:
 			{
-			if ( NodeType == sgNodeType_Attribute )
-				{
-				if ( Input )
-					StringBuilder_Append ( Output, "a_" );
-				else
-					StringBuilder_Append ( Output, "v_" );
-				}
-			else if ( NodeType == sgNodeType_Uniform )
-				{
-				if ( Input )
-					StringBuilder_Append ( Output, "u_" );
-				else
-					StringBuilder_Append ( Output, "v_" );
-				}
+			if ( ( NodeType == sgNodeType_Attribute ) && ( Input == false ) )
+				StringBuilder_Append ( Output, "v_" );
 			break;
 			}
 		case sgStage_Fragment:
 			{
 			if ( NodeType == sgNodeType_Attribute )
-				StringBuilder_Append ( Output, "a_" );
-			else if ( NodeType == sgNodeType_Uniform )
-				StringBuilder_Append ( Output, "u_" );
-			else
 				StringBuilder_Append ( Output, "v_" );
 			break;
 			}

@@ -1,6 +1,7 @@
 #pragma once
 #include <Platform/Platform.h>
 #include <Platform/PointerArray.h>
+#include <Platform/Logger.h>
 #include "ShaderGraph.h"
 #include "StringBuilder.h"
 #if defined ( PLATFORM_COMPILER_GNU )
@@ -11,7 +12,6 @@
 
 #define SG_MAX_INPUTS 8
 #define SG_MAX_OUTPUTS 8
-#define SG_MAX_CONSTANT_VALUES 16
 #define SG_MAX_NODE_NAME_LENGTH 64
 #define SG_MAX_PIN_NAME_LENGTH 64
 
@@ -42,8 +42,6 @@ struct sgNode
 	sgInternalPin Outputs[SG_MAX_OUTPUTS];
 	unsigned InputCount, OutputCount;
 	unsigned ArrayCount;
-	float ConstantValues[SG_MAX_CONSTANT_VALUES];
-	unsigned ConstantComponentCount;
 	char Swizzle[8];
 
 	union
@@ -56,6 +54,7 @@ struct sgNode
 			{
 			unsigned BoneCount;
 			} Skinning;
+		sgValue ConstantValue;
 		};
 	bool UsedInShaderStage[2];// Indexed with sgShaderStage enum values
 	char TopoColor; // 0 = unvisited, 1 = visiting, 2 = visited
@@ -97,5 +96,14 @@ static inline sgNodeHandle GetHandleFromNode ( const sgNode *Node )
 
 void CopyString ( char *Dest, const unsigned DestSize, const char *Src );
 bool IsValidNode ( const sgGraphHandle GraphHandle, const sgNodeHandle NodeHandle );
+bool IsTakenShaderName ( const sgGraph *Graph, const char *Name, const sgNode *Except );
 void SetPin ( sgInternalPin *Pin, const char *Name, const sgValueType Type );
 sgNode *CreateNode ( sgGraph *Graph, const char *Name, const sgNodeType Type );
+bool CopyValue ( const sgValue *Origin, sgValue *Destination );
+void DestroyNodePinArrays ( sgNode *Node );
+void RemoveConnectionAtIndex ( sgGraph *Graph, const unsigned Index );
+void RemoveAllConnectionsAtNode ( sgGraph *Graph, const sgNode *Target );
+int CanReachForward ( const sgNode *From, const sgNode *Target, PointerArray *Visited );
+int WouldCreateCycle ( const sgNode *Source, const sgNode *Destination );
+bool NodeInputsConnected ( const sgNode *Node );
+bool ValidateReachableSubgraph ( const sgNode *Node, PointerArray *Visiting, PointerArray *Visited );

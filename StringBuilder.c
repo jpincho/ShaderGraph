@@ -1,6 +1,7 @@
 #include "StringBuilder.h"
 #include <Platform/Platform.h>
 #include <Platform/ArrayUtils.h>
+#include <limits.h>
 
 #if defined ( PLATFORM_COMPILER_GNU)
 #include <stdio.h>
@@ -38,7 +39,14 @@ bool StringBuilder_Reserve ( StringBuilder *Builder, const unsigned NeededCapaci
 		return true;
 	unsigned NewCapacity = ( Builder->Capacity == 0 ) ? 256 : Builder->Capacity;
 	while ( NewCapacity < NeededCapacity )
+		{
+		if ( NewCapacity > ( UINT_MAX / 2 ) )
+			{
+			NewCapacity = NeededCapacity;
+			break;
+			}
 		NewCapacity *= 2;
+		}
 	if ( Memory_Realloc ( ( void ** ) &Builder->Data, NewCapacity ) == false )
 		return false;
 	Builder->Capacity = NewCapacity;

@@ -7,8 +7,9 @@ vec3 EvaluateBlinnPhong ( vec3 LightVector, vec3 ViewVector, vec3 Normal,
 	vec3 N = normalize ( Normal );
 	vec3 V = normalize ( ViewVector );
 	vec3 H = normalize ( L + V );
-	float DiffuseFactor = max ( dot ( N, L ), 0.0 );
-	float SpecularFactor = pow ( max ( dot ( N, H ), 0.0 ), max ( Shininess, 1.0 ) );
+	float NdotL = dot ( N, L );
+	float DiffuseFactor = max ( NdotL, 0.0 );
+	float SpecularFactor = ( NdotL > 0.0 ) ? pow ( max ( dot ( N, H ), 0.0 ), max ( Shininess, 1.0 ) ) : 0.0;
 	return ( DiffuseFactor * LightDiffuse * MaterialDiffuse + SpecularFactor * LightSpecular * MaterialSpecular ) * LightIntensity;
 }
 

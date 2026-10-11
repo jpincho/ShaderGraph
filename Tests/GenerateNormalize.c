@@ -19,7 +19,7 @@ int main ( void )
 	sgNodeHandle Position = sgAddAttribute ( Graph, "Position", sgValueType_Vec4 );
 	sgNodeHandle Normal = sgAddAttribute ( Graph, "Normal", sgValueType_Vec3 );
 	sgNodeHandle Normalize = sgAddNormalize ( Graph );
-	sgNodeHandle Compose = sgAddComposeVec4 ( Graph );
+	sgNodeHandle Compose = sgAddComposeVector ( Graph, sgValueType_Float, 4 );
 	sgNodeHandle Nx = sgAddSwizzle ( Graph, "x", sgValueType_Vec3, sgValueType_Float );
 	sgNodeHandle Ny = sgAddSwizzle ( Graph, "y", sgValueType_Vec3, sgValueType_Float );
 	sgNodeHandle Nz = sgAddSwizzle ( Graph, "z", sgValueType_Vec3, sgValueType_Float );
