@@ -1,4 +1,5 @@
 #include "../ShaderGraph.h"
+#include "TestUtils/GLSLangCheck.h"
 #include <Platform/Logger.h>
 #include <stdlib.h>
 #include <string.h>
@@ -98,6 +99,14 @@ int main ( void )
 		TestResult = -1;
 		goto End;
 		}
+
+	if ( sgTestGLSL ( VertexShader, FragmentShader ) == false )
+		{
+		LOG_ERROR ( "Shader failed to build" );
+		TestResult = -1;
+		goto End;
+		}
+
 	if ( ( strstr ( VertexShader, ".x" ) == NULL ) || ( strstr ( VertexShader, "vec4" ) == NULL ) || ( strstr ( VertexShader, "gl_Position" ) == NULL ) )
 		{
 		LOG_ERROR ( "Unexpected vertex shader:\n%s\n", VertexShader );

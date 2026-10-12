@@ -1,4 +1,5 @@
 #include "../ShaderGraph.h"
+#include "TestUtils/GLSLangCheck.h"
 #include <Platform/Logger.h>
 #include <stdlib.h>
 #include <string.h>
@@ -103,6 +104,14 @@ int main ( void )
 		TestResult = -1;
 		goto End;
 		}
+
+	if ( sgTestGLSL ( VertexShader, FragmentShader ) == false )
+		{
+		LOG_ERROR ( "Shader failed to build" );
+		TestResult = -1;
+		goto End;
+		}
+
 	if ( strstr ( FragmentShader, "normalize" ) == NULL )
 		{
 		LOG_ERROR ( "Fragment shader missing normalize:\n%s\n", FragmentShader );

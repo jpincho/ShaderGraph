@@ -1,4 +1,5 @@
 #include "../ShaderGraph.h"
+#include "TestUtils/GLSLangCheck.h"
 #include <Platform/Logger.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,6 +48,14 @@ int main ( void )
 		TestResult = -1;
 		goto End;
 		}
+
+	if ( sgTestGLSL ( VertexShader, FragmentShader ) == false )
+		{
+		LOG_ERROR ( "Shader failed to build" );
+		TestResult = -1;
+		goto End;
+		}
+
 	if ( ( strstr ( VertexShader, "out vec4 v_Color" ) == NULL ) || ( strstr ( VertexShader, "v_Color = Color" ) == NULL ) )
 		{
 		LOG_ERROR ( "Vertex shader missing color varying pass-through\n%s\n", VertexShader );

@@ -1,4 +1,5 @@
 #include "../ShaderGraph.h"
+#include "TestUtils/GLSLangCheck.h"
 #include <Platform/Logger.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,6 +68,13 @@ int main ( void )
 	if ( sgGenerateGLSL ( Graph, &VertexShader, &FragmentShader ) == false )
 		{
 		LOG_ERROR ( "GLSL generation failed" );
+		TestResult = -1;
+		goto End;
+		}
+
+	if ( sgTestGLSL ( VertexShader, FragmentShader ) == false )
+		{
+		LOG_ERROR ( "Shader failed to build" );
 		TestResult = -1;
 		goto End;
 		}
