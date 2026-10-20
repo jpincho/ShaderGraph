@@ -122,7 +122,16 @@ bool sgAddConnection ( const sgGraphHandle GraphHandle, const sgNodeHandle FromN
 bool sgRemoveConnection ( const sgGraphHandle GraphHandle, const sgNodeHandle FromNodeHandle, const unsigned SourcePinIndex, const sgNodeHandle ToNodeHandle, const unsigned TargetPinIndex );
 bool sgValidateGraph ( const sgGraphHandle GraphHandle );
 
-bool sgGenerateGLSL ( const sgGraphHandle GraphHandle, char **OutVertexShader, char **OutFragmentShader );
+typedef struct
+	{
+	struct
+		{
+		unsigned Major, Minor;
+		} GLSLVersion;
+	} GLSLGeneratorOptions;
+	
+GLSLGeneratorOptions sgGetDefaultGLSLGeneratorOptions ( void );
+bool sgGenerateGLSL ( const sgGraphHandle GraphHandle, const GLSLGeneratorOptions Options, char **OutVertexShader, char **OutFragmentShader );
 
 const char *sgStringifyNodeType ( const sgNodeType Value );
 const char *sgStringifyValueType ( const sgValueType Value );

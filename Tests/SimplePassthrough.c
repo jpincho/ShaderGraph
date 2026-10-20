@@ -56,7 +56,7 @@ int main ( void )
 		goto End;
 		}
 
-	if ( sgGenerateGLSL ( Graph, &VertexShader, &FragmentShader ) == false )
+	if ( sgGenerateGLSL ( Graph, sgGetDefaultGLSLGeneratorOptions(), &VertexShader, &FragmentShader ) == false )
 		{
 		LOG_ERROR ( "Failed to generate GLSL" );
 		TestResult = -1;

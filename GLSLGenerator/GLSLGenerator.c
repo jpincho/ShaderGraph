@@ -5,6 +5,17 @@
 #include "GLSLNodeSnippets.h"
 #include "GeneratorUtils.h"
 
+
+static unsigned EncodeGLSLVersion ( const unsigned Major, unsigned Minor )
+	{
+	if ( Minor < 10 )
+		Minor *= 10;
+	const unsigned Encoded = Major * 100 + Minor;
+	if ( Encoded == 0 )
+		return 400;
+	return Encoded;
+	}
+
 static bool NodeUsedInStage ( const sgNode *Node, const sgShaderStage Stage )
 	{
 	return ( Node != NULL ) && Node->UsedInShaderStage[Stage];
@@ -246,7 +257,7 @@ static bool AppendVaryingPassThrough ( StringBuilder *Body, const sgGraph *Graph
 	return true;
 	}
 
-static char *BuildVertexShaderSource ( const sgGraph *Graph )
+static char *BuildVertexShaderSource ( const sgGraph *Graph, const GLSLGeneratorOptions Options )
 	{
 	PointerArray Ordered;
 	PointerArray_Initialize ( &Ordered );
@@ -258,7 +269,7 @@ static char *BuildVertexShaderSource ( const sgGraph *Graph )
 
 	StringBuilder Source = {0};
 
-	if ( ( StringBuilder_Append ( &Source, "#version 330 core\n\n" ) == false ) ||
+	if ( ( StringBuilder_Appendf ( &Source, "#version %u core\n\n", EncodeGLSLVersion ( Options.GLSLVersion.Major, Options.GLSLVersion.Minor ) ) == false ) ||
 	        ( AppendDeclarations ( &Source, Graph, sgStage_Vertex ) == false ) ||
 	        ( StringBuilder_Append ( &Source, "\nvoid main ( )\n{\n" ) == false ) )
 		goto OnError;
@@ -288,7 +299,7 @@ OnError:
 	}
 
 
-static char *BuildFragmentShaderSource ( const sgGraph *Graph )
+static char *BuildFragmentShaderSource ( const sgGraph *Graph, const GLSLGeneratorOptions Options )
 	{
 	PointerArray Ordered;
 	PointerArray_Initialize ( &Ordered );
@@ -300,7 +311,7 @@ static char *BuildFragmentShaderSource ( const sgGraph *Graph )
 
 	StringBuilder Source = {0};
 
-	if ( ( StringBuilder_Append ( &Source, "#version 330 core\n\n" ) == false ) ||
+	if ( ( StringBuilder_Appendf ( &Source, "#version %u core\n\n", EncodeGLSLVersion ( Options.GLSLVersion.Major, Options.GLSLVersion.Minor ) ) == false ) ||
 	        ( AppendDeclarations ( &Source, Graph, sgStage_Fragment ) == false ) ||
 	        ( StringBuilder_Append ( &Source, "\nvoid main ( )\n{\n" ) == false ) )
 		goto OnError;
@@ -326,7 +337,17 @@ OnError:
 	return NULL;
 	}
 
-bool sgGenerateGLSL ( const sgGraphHandle GraphHandle, char **OutVertexShader, char **OutFragmentShader )
+GLSLGeneratorOptions sgGetDefaultGLSLGeneratorOptions ( void )
+	{
+	static GLSLGeneratorOptions Options = {0};
+	if ( Options.GLSLVersion.Major == 0 )
+		{
+		Options.GLSLVersion.Major = Options.GLSLVersion.Minor = 3;
+		}
+	return Options;
+	}
+	
+bool sgGenerateGLSL ( const sgGraphHandle GraphHandle, const GLSLGeneratorOptions Options, char **OutVertexShader, char **OutFragmentShader )
 	{
 	if ( ( OutVertexShader == NULL ) || ( OutFragmentShader == NULL ) )
 		return false;
@@ -348,8 +369,8 @@ bool sgGenerateGLSL ( const sgGraphHandle GraphHandle, char **OutVertexShader, c
 			Node->UsedInShaderStage[sgStage_Vertex] = true;
 		}
 
-	char *VertexShader = BuildVertexShaderSource ( Graph );
-	char *FragmentShader = BuildFragmentShaderSource ( Graph );
+	char *VertexShader = BuildVertexShaderSource ( Graph, Options );
+	char *FragmentShader = BuildFragmentShaderSource ( Graph, Options );
 
 	ClearStageUsage ( Graph );
 	ClearTopoColors ( Graph );
