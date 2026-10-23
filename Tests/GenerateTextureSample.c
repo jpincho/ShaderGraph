@@ -71,14 +71,14 @@ int main ( void )
 		goto End;
 		}
 
-	if ( ( strstr ( FragmentShader, "texture" ) == NULL ) || ( strstr ( FragmentShader, "uniform sampler2D AlbedoMap" ) == NULL ) ||
+	if ( ( strstr ( FragmentShader, "texture" ) == NULL ) || ( strstr ( FragmentShader, "uniform sampler2D u_AlbedoMap" ) == NULL ) ||
 	        ( strstr ( FragmentShader, "in vec2 v_UV" ) == NULL ) )
 		{
 		LOG_ERROR ( "Unexpected fragment shader:\n%s\n", FragmentShader );
 		TestResult = -1;
 		goto End;
 		}
-	if ( ( strstr ( VertexShader, "out vec2 v_UV" ) == NULL ) || ( strstr ( VertexShader, "v_UV = UV" ) == NULL ) )
+	if ( ( strstr ( VertexShader, "out vec2 v_UV" ) == NULL ) || ( strstr ( VertexShader, "v_UV = a_UV" ) == NULL ) )
 		{
 		LOG_ERROR ( "Unexpected vertex shader:\n%s\n", VertexShader );
 		TestResult = -1;

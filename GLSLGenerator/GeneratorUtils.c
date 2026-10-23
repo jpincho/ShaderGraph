@@ -46,6 +46,50 @@ static bool SymbolFits ( char *Buffer, const unsigned BufferSize, const int Writ
 	return true;
 	}
 
+bool GetOutputSymbolName ( StringBuilder *SymbolName, const sgNode *Node, const unsigned PinIndex, const sgShaderStage Stage )
+	{
+	if ( ( Node == NULL ) || ( SymbolName == NULL ) || ( PinIndex >= Node->OutputCount ) )
+		return false;
+	StringBuilder_Clear ( SymbolName );
+	switch ( Node->Type )
+		{
+		// Attributes that are to be read in the vertex buffer are named a_Attribute. When passed to an output variable for the fragment buffer, it goes as v_Attribute
+		case sgNodeType_Attribute:
+			{
+			if ( Stage == sgStage_Fragment )
+				return StringBuilder_Appendf ( SymbolName, "v_%s", Node->Name );
+			return StringBuilder_Appendf ( SymbolName, "a_%s", Node->Name );
+			}
+		// Uniforms start with u_
+		case sgNodeType_Uniform:
+			{
+			// If it a simple uniform...
+			if ( Node->ArrayCount == 0 )
+				return StringBuilder_Appendf ( SymbolName, "u_%s", Node->Name );
+			break;
+			}
+		default:
+			break;
+		}
+
+	if ( Node->OutputCount > 1 )
+		return StringBuilder_Appendf ( SymbolName, "n%u_%s", Node->NodeID, Node->Outputs[PinIndex].PinName );
+	return StringBuilder_Appendf ( SymbolName, "n%u", Node->NodeID );
+	}
+
+
+bool GetInputSymbolName ( StringBuilder *SymbolName, const sgNode *Node, const unsigned PinIndex, const sgShaderStage Stage )
+	{
+	if ( ( Node == NULL ) || ( SymbolName == NULL ) || ( PinIndex >= Node->InputCount ) )
+		return false;
+	const sgConnection *Connection = Node->Inputs[PinIndex].InputConnection;
+	if ( Connection == NULL )
+		return false;
+	return GetOutputSymbolName ( SymbolName, Connection->OutputNode, Connection->OutputPinIndex, Stage );
+	}
+
+
+	// TODO REMOVE THESE TWO FUNCTIONS
 bool GetOutputSymbol ( const sgNode *Node, const unsigned PinIndex, const sgShaderStage Stage, char *Buffer, const unsigned BufferSize )
 	{
 	if ( ( Node == NULL ) || ( Buffer == NULL ) || ( BufferSize == 0 ) || ( PinIndex >= Node->OutputCount ) )
@@ -107,33 +151,3 @@ bool GetInputSymbol ( const sgNode *Node, const unsigned PinIndex, const sgShade
 	return GetOutputSymbol ( Connection->OutputNode, Connection->OutputPinIndex, Stage, Buffer, BufferSize );
 	}
 
-bool LoadNodeInputs ( const sgNode *Node, const sgShaderStage Stage, char Inputs[SG_MAX_INPUTS][128] )
-	{
-	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
-		{
-		if ( GetInputSymbol ( Node, InputIndex, Stage, Inputs[InputIndex], sizeof ( Inputs[InputIndex] ) ) == false )
-			return false;
-		}
-	return true;
-	}
-
-bool GenerateVarNameForStage ( const char *Variable, const sgNodeType NodeType, const sgShaderStage Stage, const bool Input, StringBuilder *Output )
-	{
-	switch ( Stage )
-		{
-		case sgStage_Vertex:
-			{
-			if ( ( NodeType == sgNodeType_Attribute ) && ( Input == false ) )
-				StringBuilder_Append ( Output, "v_" );
-			break;
-			}
-		case sgStage_Fragment:
-			{
-			if ( NodeType == sgNodeType_Attribute )
-				StringBuilder_Append ( Output, "v_" );
-			break;
-			}
-		}
-	StringBuilder_Append ( Output, Variable );
-	return true;
-	}

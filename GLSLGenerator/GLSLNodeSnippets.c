@@ -67,11 +67,13 @@ static bool AppendGLSLFloats ( StringBuilder *Body, const float *Values, const u
 
 bool AddGLSLBody_Constant ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
 	{
-	char Out0[128];
-	if ( GetOutputSymbol ( Node, 0, Stage, Out0, sizeof ( Out0 ) ) == false )
-		return false;
-	if ( StringBuilder_Appendf ( Body, "	%s %s = ", sgValueTypeToGLSL ( Node->Outputs[0].ValueType ), Out0 ) == false )
-		return false;
+	bool Result = false;
+	StringBuilder OutputSymbol;
+	StringBuilder_Initialize ( &OutputSymbol );
+	if ( GetOutputSymbolName ( &OutputSymbol, Node, 0, Stage ) == false )
+		goto OnError;
+	if ( StringBuilder_Appendf ( Body, "	%s %s = ", sgValueTypeToGLSL ( Node->Outputs[0].ValueType ), OutputSymbol.Data ) == false )
+		goto OnError;
 
 	bool WroteValue = false;
 	switch ( Node->Outputs[0].ValueType )
@@ -90,8 +92,8 @@ bool AddGLSLBody_Constant ( StringBuilder *Body, const sgNode *Node, const sgSha
 			break;
 		case sgValueType_UVec4:
 			WroteValue = StringBuilder_Appendf ( Body, "uvec4 ( %uu, %uu, %uu, %uu )",
-			                                    Node->ConstantValue.UVec4[0], Node->ConstantValue.UVec4[1],
-			                                    Node->ConstantValue.UVec4[2], Node->ConstantValue.UVec4[3] );
+			                                     Node->ConstantValue.UVec4[0], Node->ConstantValue.UVec4[1],
+			                                     Node->ConstantValue.UVec4[2], Node->ConstantValue.UVec4[3] );
 			break;
 		case sgValueType_Mat3:
 			WroteValue = AppendGLSLFloats ( Body, Node->ConstantValue.Matrix3, 9, "mat3 ( ", " )" );
@@ -109,179 +111,368 @@ bool AddGLSLBody_Constant ( StringBuilder *Body, const sgNode *Node, const sgSha
 			WroteValue = AppendGLSLFloats ( Body, Node->ConstantValue.Matrix4, 16, "mat4 ( ", " )" );
 			break;
 		default:
-			return false;
+			break;
 		}
 	if ( WroteValue == false )
-		return false;
-	return StringBuilder_Append ( Body, ";\n" );
+		goto OnError;
+	if ( StringBuilder_Append ( Body, ";\n" ) == false )
+		goto OnError;
+	Result = true;
+
+OnError:
+	StringBuilder_Destroy ( &OutputSymbol );
+	return Result;
 	}
 
 bool AddGLSLBody_TextureSample ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
 	{
-	char Out0[128];
-	char Inputs[SG_MAX_INPUTS][128];
-	if ( ( LoadNodeInputs ( Node, Stage, Inputs ) == false ) ||
-	        ( GetOutputSymbol ( Node, 0, Stage, Out0, sizeof ( Out0 ) ) == false ) )
-		return false;
-	return StringBuilder_Appendf ( Body, "	vec4 %s = texture ( %s, %s );\n", Out0, Inputs[0], Inputs[1] );
+	bool Result = false;
+	StringBuilder OutputSymbol;
+	StringBuilder InputSymbols[2];
+	StringBuilder_Initialize ( &OutputSymbol );
+	for ( unsigned InputIndex = 0; InputIndex < 2; ++InputIndex )
+		StringBuilder_Initialize ( &InputSymbols[InputIndex] );
+
+	if ( GetOutputSymbolName ( &OutputSymbol, Node, 0, Stage ) == false )
+		goto OnError;
+	for ( unsigned InputIndex = 0; InputIndex < 2; ++InputIndex )
+		{
+		if ( GetInputSymbolName ( &InputSymbols[InputIndex], Node, InputIndex, Stage ) == false )
+			goto OnError;
+		}
+
+	if ( StringBuilder_Appendf ( Body, "	vec4 %s = texture ( %s, %s );\n", OutputSymbol.Data, InputSymbols[0].Data, InputSymbols[1].Data ) == false )
+		goto OnError;
+	Result = true;
+
+OnError:
+	StringBuilder_Destroy ( &OutputSymbol );
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		StringBuilder_Destroy ( &InputSymbols[InputIndex] );
+		}
+	return Result;
 	}
 
 bool AddGLSLBody_Multiplication ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
 	{
-	char Out0[128];
-	char Inputs[SG_MAX_INPUTS][128];
-	if ( ( LoadNodeInputs ( Node, Stage, Inputs ) == false ) ||
-	        ( GetOutputSymbol ( Node, 0, Stage, Out0, sizeof ( Out0 ) ) == false ) )
-		return false;
-	return StringBuilder_Appendf ( Body, "	%s %s = %s * %s;\n", sgValueTypeToGLSL ( Node->Outputs[0].ValueType ), Out0, Inputs[0], Inputs[1] );
+	bool Result = false;
+	StringBuilder OutputSymbol;
+	StringBuilder InputSymbols[2];
+	StringBuilder_Initialize ( &OutputSymbol );
+	for ( unsigned InputIndex = 0; InputIndex < 2; ++InputIndex )
+		StringBuilder_Initialize ( &InputSymbols[InputIndex] );
+
+	if ( GetOutputSymbolName ( &OutputSymbol, Node, 0, Stage ) == false )
+		goto OnError;
+	for ( unsigned InputIndex = 0; InputIndex < 2; ++InputIndex )
+		{
+		if ( GetInputSymbolName ( &InputSymbols[InputIndex], Node, InputIndex, Stage ) == false )
+			goto OnError;
+		}
+
+	if ( StringBuilder_Appendf ( Body, "	%s %s = %s * %s;\n", sgValueTypeToGLSL ( Node->Outputs[0].ValueType ), OutputSymbol.Data, InputSymbols[0].Data, InputSymbols[1].Data ) == false )
+		goto OnError;
+	Result = true;
+
+OnError:
+	StringBuilder_Destroy ( &OutputSymbol );
+	for ( unsigned InputIndex = 0; InputIndex < 2; ++InputIndex )
+		{
+		StringBuilder_Destroy ( &InputSymbols[InputIndex] );
+		}
+	return Result;
 	}
 
 bool AddGLSLBody_Addition ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
 	{
-	char Out0[128];
-	char Inputs[SG_MAX_INPUTS][128];
-	if ( ( LoadNodeInputs ( Node, Stage, Inputs ) == false ) ||
-	        ( GetOutputSymbol ( Node, 0, Stage, Out0, sizeof ( Out0 ) ) == false ) )
-		return false;
-	return StringBuilder_Appendf ( Body, "	%s %s = %s + %s;\n", sgValueTypeToGLSL ( Node->Outputs[0].ValueType ), Out0, Inputs[0], Inputs[1] );
+	bool Result = false;
+	StringBuilder OutputSymbol;
+	StringBuilder InputSymbols[2];
+	StringBuilder_Initialize ( &OutputSymbol );
+	for ( unsigned InputIndex = 0; InputIndex < 2; ++InputIndex )
+		StringBuilder_Initialize ( &InputSymbols[InputIndex] );
+
+	if ( GetOutputSymbolName ( &OutputSymbol, Node, 0, Stage ) == false )
+		goto OnError;
+	for ( unsigned InputIndex = 0; InputIndex < 2; ++InputIndex )
+		{
+		if ( GetInputSymbolName ( &InputSymbols[InputIndex], Node, InputIndex, Stage ) == false )
+			goto OnError;
+		}
+
+	if ( StringBuilder_Appendf ( Body, "	%s %s = %s + %s;\n", sgValueTypeToGLSL ( Node->Outputs[0].ValueType ), OutputSymbol.Data, InputSymbols[0].Data, InputSymbols[1].Data ) == false )
+		goto OnError;
+	Result = true;
+
+OnError:
+	StringBuilder_Destroy ( &OutputSymbol );
+	for ( unsigned InputIndex = 0; InputIndex < 2; ++InputIndex )
+		{
+		StringBuilder_Destroy ( &InputSymbols[InputIndex] );
+		}
+	return Result;
 	}
 
 bool AddGLSLBody_Normalize ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
 	{
-	char Out0[128];
-	char Inputs[SG_MAX_INPUTS][128];
-	if ( ( LoadNodeInputs ( Node, Stage, Inputs ) == false ) ||
-	        ( GetOutputSymbol ( Node, 0, Stage, Out0, sizeof ( Out0 ) ) == false ) )
-		return false;
-	return StringBuilder_Appendf ( Body, "	vec3 %s = normalize ( %s );\n", Out0, Inputs[0] );
+	bool Result = false;
+	StringBuilder OutputSymbol;
+	StringBuilder Input1;
+	StringBuilder_Initialize ( &OutputSymbol );
+	StringBuilder_Initialize ( &Input1 );
+	if ( GetOutputSymbolName ( &OutputSymbol, Node, 0, Stage ) == false )
+		goto OnError;
+	if ( GetInputSymbolName ( &Input1, Node, 0, Stage ) == false )
+		goto OnError;
+	if ( StringBuilder_Appendf ( Body, "	%s %s = normalize ( %s );\n", sgValueTypeToGLSL ( Node->Outputs[0].ValueType ), OutputSymbol.Data, Input1.Data ) == false )
+		goto OnError;
+	Result = true;
+
+OnError:
+	StringBuilder_Destroy ( &OutputSymbol );
+	StringBuilder_Destroy ( &Input1 );
+	return Result;
 	}
 
 bool AddGLSLBody_ComposeVec ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
 	{
-	char Out0[128];
-	char Inputs[SG_MAX_INPUTS][128];
-	if ( ( LoadNodeInputs ( Node, Stage, Inputs ) == false ) ||
-	        ( GetOutputSymbol ( Node, 0, Stage, Out0, sizeof ( Out0 ) ) == false ) )
-		return false;
-	const char *GlslType = sgValueTypeToGLSL ( Node->Outputs[0].ValueType );
+	bool Result = false;
+	StringBuilder OutputSymbol;
+	StringBuilder InputSymbols[4];
+	StringBuilder_Initialize ( &OutputSymbol );
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		StringBuilder_Initialize ( &InputSymbols[InputIndex] );
+
+	if ( GetOutputSymbolName ( &OutputSymbol, Node, 0, Stage ) == false )
+		goto OnError;
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		if ( GetInputSymbolName ( &InputSymbols[InputIndex], Node, InputIndex, Stage ) == false )
+			goto OnError;
+		}
+
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		if ( GetInputSymbolName ( &InputSymbols[InputIndex], Node, InputIndex, Stage ) == false )
+			goto OnError;
+		}
+
+	const char *GLSLType = sgValueTypeToGLSL ( Node->Outputs[0].ValueType );
+	bool WroteValue = false;
 	switch ( Node->InputCount )
 		{
 		case 2:
-			return StringBuilder_Appendf ( Body, "	%s %s = %s ( %s, %s );\n", GlslType, Out0, GlslType, Inputs[0], Inputs[1] );
+			WroteValue = StringBuilder_Appendf ( Body, "	%s %s = %s ( %s, %s );\n", GLSLType, OutputSymbol.Data, GLSLType, InputSymbols[0].Data, InputSymbols[1].Data );
 		case 3:
-			return StringBuilder_Appendf ( Body, "	%s %s = %s ( %s, %s, %s );\n", GlslType, Out0, GlslType, Inputs[0], Inputs[1], Inputs[2] );
+			WroteValue = StringBuilder_Appendf ( Body, "	%s %s = %s ( %s, %s, %s );\n", GLSLType, OutputSymbol.Data, GLSLType, InputSymbols[0].Data, InputSymbols[1].Data, InputSymbols[2].Data );
 		case 4:
-			return StringBuilder_Appendf ( Body, "	%s %s = %s ( %s, %s, %s, %s );\n", GlslType, Out0, GlslType, Inputs[0], Inputs[1], Inputs[2], Inputs[3] );
+			WroteValue = StringBuilder_Appendf ( Body, "	%s %s = %s ( %s, %s, %s, %s );\n", GLSLType, OutputSymbol.Data, GLSLType, InputSymbols[0].Data, InputSymbols[1].Data, InputSymbols[2].Data, InputSymbols[3].Data );
 		}
-	return false;
+	if ( WroteValue == false )
+		goto OnError;
+
+	Result = true;
+
+OnError:
+	StringBuilder_Destroy ( &OutputSymbol );
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		StringBuilder_Destroy ( &InputSymbols[InputIndex] );
+		}
+	return Result;
 	}
 
 bool AddGLSLBody_Swizzle ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
 	{
-	char Out0[128];
-	char Inputs[SG_MAX_INPUTS][128];
-	if ( ( LoadNodeInputs ( Node, Stage, Inputs ) == false ) ||
-	        ( GetOutputSymbol ( Node, 0, Stage, Out0, sizeof ( Out0 ) ) == false ) )
-		return false;
-	return StringBuilder_Appendf ( Body, "	%s %s = %s.%s;\n", sgValueTypeToGLSL ( Node->Outputs[0].ValueType ), Out0, Inputs[0], Node->Swizzle );
+	bool Result = false;
+	StringBuilder OutputSymbol;
+	StringBuilder InputSymbol;
+	StringBuilder_Initialize ( &OutputSymbol );
+	StringBuilder_Initialize ( &InputSymbol );
+
+	if ( GetOutputSymbolName ( &OutputSymbol, Node, 0, Stage ) == false )
+		goto OnError;
+
+	if ( GetInputSymbolName ( &InputSymbol, Node, 0, Stage ) == false )
+		goto OnError;
+
+	if ( StringBuilder_Appendf ( Body, "	%s %s = %s.%s;\n", sgValueTypeToGLSL ( Node->Outputs[0].ValueType ), OutputSymbol.Data, InputSymbol.Data, Node->Swizzle ) == false )
+		goto OnError;
+	Result = true;
+
+OnError:
+	StringBuilder_Destroy ( &OutputSymbol );
+	StringBuilder_Destroy ( &InputSymbol );
+	return Result;
 	}
 
 bool AddGLSLBody_Mat3Cast ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
 	{
-	char Out0[128];
-	char Inputs[SG_MAX_INPUTS][128];
-	if ( ( LoadNodeInputs ( Node, Stage, Inputs ) == false ) ||
-	        ( GetOutputSymbol ( Node, 0, Stage, Out0, sizeof ( Out0 ) ) == false ) )
+	bool Result = false;
+	StringBuilder OutputSymbol;
+	StringBuilder InputSymbol;
+	StringBuilder_Initialize ( &OutputSymbol );
+	StringBuilder_Initialize ( &InputSymbol );
+
+	if ( GetOutputSymbolName ( &OutputSymbol, Node, 0, Stage ) == false )
+		goto OnError;
+
+	if ( GetInputSymbolName ( &InputSymbol, Node, 0, Stage ) == false )
+		goto OnError;
+
+	if ( StringBuilder_Appendf ( Body, "	mat3 %s = mat3 ( %s );\n", OutputSymbol.Data, InputSymbol.Data ) == false )
+		goto OnError;
+	Result = true;
+
+OnError:
+	StringBuilder_Destroy ( &OutputSymbol );
+	StringBuilder_Destroy ( &InputSymbol );
+	return Result;
+	}
+
+bool AddGLSLDeclaration_Skinning ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
+	{
+	if ( ( Body == NULL ) || ( Node == NULL ) || ( Stage != sgStage_Vertex ) || ( Node->Type != sgNodeType_Skinning ) )
 		return false;
-	return StringBuilder_Appendf ( Body, "	mat3 %s = mat3 ( %s );\n", Out0, Inputs[0] );
+	if ( Node->Skinning.BoneCount == 0 )
+		{
+		LOG_ERROR ( "Skinning node '%s' has a bone count of 0", Node->Name );
+		return false;
+		}
+	return StringBuilder_Appendf ( Body,
+	                               "layout ( std140 ) uniform %s\n"
+	                               "{\n"
+	                               "	mat4 u_BoneMatrices[%u];\n"
+	                               "};\n",
+	                               Node->Name,
+	                               Node->Skinning.BoneCount );
 	}
 
 bool AddGLSLBody_Skinning ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
 	{
-	char OutPos[128];
-	char OutNrm[128];
-	char Inputs[SG_MAX_INPUTS][128];
-	if ( ( LoadNodeInputs ( Node, Stage, Inputs ) == false ) ||
-	        ( GetOutputSymbol ( Node, 0, Stage, OutPos, sizeof ( OutPos ) ) == false ) ||
-	        ( GetOutputSymbol ( Node, 1, Stage, OutNrm, sizeof ( OutNrm ) ) == false ) )
-		return false;
+	bool Result = false;
+	StringBuilder OutputSymbolPosition, OutputSymbolNormal;
+	StringBuilder InputSymbols[SG_MAX_INPUTS];
+	StringBuilder_Initialize ( &OutputSymbolPosition );
+	StringBuilder_Initialize ( &OutputSymbolNormal );
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		StringBuilder_Initialize ( &InputSymbols[InputIndex] );
+
+	if ( GetOutputSymbolName ( &OutputSymbolPosition, Node, 0, Stage ) == false )
+		goto OnError;
+	if ( GetOutputSymbolName ( &OutputSymbolNormal, Node, 1, Stage ) == false )
+		goto OnError;
+
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		if ( GetInputSymbolName ( &InputSymbols[InputIndex], Node, InputIndex, Stage ) == false )
+			goto OnError;
+		}
+
 	if ( StringBuilder_Appendf ( Body,
 	                             "	mat4 n%u_Skin =\n"
-	                             "		uBoneMatrices[int ( %s.x )] * %s.x +\n"
-	                             "		uBoneMatrices[int ( %s.y )] * %s.y +\n"
-	                             "		uBoneMatrices[int ( %s.z )] * %s.z +\n"
-	                             "		uBoneMatrices[int ( %s.w )] * %s.w;\n",
-	                             Node->NodeID, Inputs[2], Inputs[3], Inputs[2], Inputs[3], Inputs[2], Inputs[3], Inputs[2], Inputs[3] ) == false )
+	                             "		u_BoneMatrices[int ( %s.x )] * %s.x +\n"
+	                             "		u_BoneMatrices[int ( %s.y )] * %s.y +\n"
+	                             "		u_BoneMatrices[int ( %s.z )] * %s.z +\n"
+	                             "		u_BoneMatrices[int ( %s.w )] * %s.w;\n",
+	                             Node->NodeID, InputSymbols[2].Data, InputSymbols[3].Data,
+	                             InputSymbols[2].Data, InputSymbols[3].Data,
+	                             InputSymbols[2].Data, InputSymbols[3].Data,
+	                             InputSymbols[2].Data, InputSymbols[3].Data ) == false )
 		return false;
-	if ( StringBuilder_Appendf ( Body, "	vec3 %s = ( n%u_Skin * vec4 ( %s, 1.0 ) ).xyz;\n", OutPos, Node->NodeID, Inputs[0] ) == false )
+	if ( StringBuilder_Appendf ( Body, "	vec3 %s = ( n%u_Skin * vec4 ( %s, 1.0 ) ).xyz;\n", OutputSymbolPosition.Data, Node->NodeID, InputSymbols[0].Data ) == false )
 		return false;
-	return StringBuilder_Appendf ( Body, "	vec3 %s = mat3 ( n%u_Skin ) * %s;\n", OutNrm, Node->NodeID, Inputs[1] );
+	if ( StringBuilder_Appendf ( Body, "	vec3 %s = mat3 ( n%u_Skin ) * %s;\n", OutputSymbolNormal.Data, Node->NodeID, InputSymbols[1].Data ) == false )
+		goto OnError;
+	Result = true;
+
+OnError:
+	StringBuilder_Destroy ( &OutputSymbolPosition );
+	StringBuilder_Destroy ( &OutputSymbolNormal );
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		StringBuilder_Destroy ( &InputSymbols[InputIndex] );
+		}
+	return Result;
 	}
 
 bool AddGLSLBody_TBN ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
 	{
-	char Out0[128];
-	char Inputs[SG_MAX_INPUTS][128];
-	if ( ( LoadNodeInputs ( Node, Stage, Inputs ) == false ) ||
-	        ( GetOutputSymbol ( Node, 0, Stage, Out0, sizeof ( Out0 ) ) == false ) )
-		return false;
-	return StringBuilder_Appendf ( Body, "	mat3 %s = mat3 ( normalize ( %s ), normalize ( %s ), normalize ( %s ) );\n",
-	                               Out0, Inputs[1], Inputs[2], Inputs[0] );
+	bool Result = false;
+	StringBuilder OutputSymbol;
+	StringBuilder InputSymbols[SG_MAX_INPUTS];
+	StringBuilder_Initialize ( &OutputSymbol );
+
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		StringBuilder_Initialize ( &InputSymbols[InputIndex] );
+
+	if ( GetOutputSymbolName ( &OutputSymbol, Node, 0, Stage ) == false )
+		goto OnError;
+
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		if ( GetInputSymbolName ( &InputSymbols[InputIndex], Node, InputIndex, Stage ) == false )
+			goto OnError;
+		}
+
+	if ( StringBuilder_Appendf ( Body, "	mat3 %s = mat3 ( normalize ( %s ), normalize ( %s ), normalize ( %s ) );\n",
+	                             OutputSymbol.Data, InputSymbols[1].Data, InputSymbols[2].Data, InputSymbols[0].Data ) == false )
+		goto OnError;
+
+	Result = true;
+
+OnError:
+	StringBuilder_Destroy ( &OutputSymbol );
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		StringBuilder_Destroy ( &InputSymbols[InputIndex] );
+		}
+	return Result;
 	}
 
 bool AddGLSLBody_NormalMap ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
 	{
-	char Out0[128];
-	char Inputs[SG_MAX_INPUTS][128];
-	if ( ( LoadNodeInputs ( Node, Stage, Inputs ) == false ) ||
-	        ( GetOutputSymbol ( Node, 0, Stage, Out0, sizeof ( Out0 ) ) == false ) )
-		return false;
-	return StringBuilder_Appendf ( Body, "	vec3 %s = normalize ( %s * normalize ( %s * 2.0 - 1.0 ) );\n", Out0, Inputs[0], Inputs[1] );
-	}
+	bool Result = false;
+	StringBuilder OutputSymbol;
+	StringBuilder InputSymbols[SG_MAX_INPUTS];
+	StringBuilder_Initialize ( &OutputSymbol );
 
-bool AddGLSLBody_BlinnPhong ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
-	{
-	char Out0[128];
-	char Inputs[SG_MAX_INPUTS][128];
-	if ( ( LoadNodeInputs ( Node, Stage, Inputs ) == false ) ||
-	        ( GetOutputSymbol ( Node, 0, Stage, Out0, sizeof ( Out0 ) ) == false ) )
-		return false;
-	return StringBuilder_Appendf ( Body,
-	                               "	vec4 %s = EvaluateLights ( %s, %s, %s, %s, %s, %s );\n",
-	                               Out0, Inputs[0], Inputs[1], Inputs[2], Inputs[3], Inputs[4], Inputs[5] );
-	}
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		StringBuilder_Initialize ( &InputSymbols[InputIndex] );
 
-bool AddGLSLBody_VertexPosition ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
-	{
-	if ( Stage != sgStage_Vertex )
-		return true;
-	char Inputs[SG_MAX_INPUTS][128];
-	if ( LoadNodeInputs ( Node, Stage, Inputs ) == false )
-		return false;
-	return StringBuilder_Appendf ( Body, "	gl_Position = %s;\n", Inputs[0] );
-	}
+	if ( GetOutputSymbolName ( &OutputSymbol, Node, 0, Stage ) == false )
+		goto OnError;
 
-bool AddGLSLBody_FragmentColor ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
-	{
-	if ( Stage != sgStage_Fragment )
-		return true;
-	char Inputs[SG_MAX_INPUTS][128];
-	if ( LoadNodeInputs ( Node, Stage, Inputs ) == false )
-		return false;
-	return StringBuilder_Appendf ( Body, "	FragColor = %s;\n", Inputs[0] );
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		if ( GetInputSymbolName ( &InputSymbols[InputIndex], Node, InputIndex, Stage ) == false )
+			goto OnError;
+		}
+
+	if ( StringBuilder_Appendf ( Body, "	vec3 %s = normalize ( %s * normalize ( %s * 2.0 - 1.0 ) );\n", OutputSymbol.Data, InputSymbols[0].Data, InputSymbols[1].Data ) == false )
+		goto OnError;
+
+	Result = true;
+
+OnError:
+	StringBuilder_Destroy ( &OutputSymbol );
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		StringBuilder_Destroy ( &InputSymbols[InputIndex] );
+		}
+	return Result;
 	}
 
 bool AddGLSLDeclaration_BlinnPhong ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
 	{
-	if ( Body == NULL )
-		return false;
-	UNUSED ( Stage );
 	const char *LightDeclarationsGLSL =
 #include "LightDeclarations.glsl"
 	    ;
 	const char *BlinnPhongLightingGLSL =
 #include "BlinnPhongLighting.glsl"
 	    ;
+	UNUSED ( Stage );
 	if ( Node->BlinnPhong.LightCount == 0 )
 		{
 		LOG_ERROR ( "BlinnPhong node '%s' has a light count of 0", Node->Name );
@@ -290,4 +481,104 @@ bool AddGLSLDeclaration_BlinnPhong ( StringBuilder *Body, const sgNode *Node, co
 	if ( StringBuilder_Appendf ( Body, LightDeclarationsGLSL, Node->BlinnPhong.LightCount, Node->BlinnPhong.LightCount, Node->BlinnPhong.LightCount ) == false )
 		return false;
 	return StringBuilder_Append ( Body, BlinnPhongLightingGLSL );
+	}
+
+bool AddGLSLBody_BlinnPhong ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
+	{
+	bool Result = false;
+	StringBuilder OutputSymbol;
+	StringBuilder InputSymbols[SG_MAX_INPUTS];
+	StringBuilder_Initialize ( &OutputSymbol );
+
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		StringBuilder_Initialize ( &InputSymbols[InputIndex] );
+
+	if ( GetOutputSymbolName ( &OutputSymbol, Node, 0, Stage ) == false )
+		goto OnError;
+
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		if ( GetInputSymbolName ( &InputSymbols[InputIndex], Node, InputIndex, Stage ) == false )
+			goto OnError;
+		}
+
+	if ( StringBuilder_Appendf ( Body, "	vec4 %s = EvaluateLights ( %s, %s, %s, %s, %s, %s );\n",
+	                             OutputSymbol.Data,
+	                             InputSymbols[0].Data,
+	                             InputSymbols[1].Data,
+	                             InputSymbols[2].Data,
+	                             InputSymbols[3].Data,
+	                             InputSymbols[4].Data,
+	                             InputSymbols[5].Data ) == false )
+		goto OnError;
+
+	Result = true;
+
+OnError:
+	StringBuilder_Destroy ( &OutputSymbol );
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		StringBuilder_Destroy ( &InputSymbols[InputIndex] );
+		}
+	return Result;
+	}
+
+bool AddGLSLBody_VertexPosition ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
+	{
+	if ( Stage != sgStage_Vertex )
+		return true;
+
+	bool Result = false;
+	StringBuilder InputSymbols[SG_MAX_INPUTS];
+
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		StringBuilder_Initialize ( &InputSymbols[InputIndex] );
+
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		if ( GetInputSymbolName ( &InputSymbols[InputIndex], Node, InputIndex, Stage ) == false )
+			goto OnError;
+		}
+
+	if ( StringBuilder_Appendf ( Body, "	gl_Position = %s;\n", InputSymbols[0].Data ) == false )
+		goto OnError;
+
+	Result = true;
+
+OnError:
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		StringBuilder_Destroy ( &InputSymbols[InputIndex] );
+		}
+	return Result;
+	}
+
+bool AddGLSLBody_FragmentColor ( StringBuilder *Body, const sgNode *Node, const sgShaderStage Stage )
+	{
+	if ( Stage != sgStage_Fragment )
+		return true;
+
+	bool Result = false;
+	StringBuilder InputSymbols[SG_MAX_INPUTS];
+
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		StringBuilder_Initialize ( &InputSymbols[InputIndex] );
+
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		if ( GetInputSymbolName ( &InputSymbols[InputIndex], Node, InputIndex, Stage ) == false )
+			goto OnError;
+		}
+
+	if ( StringBuilder_Appendf ( Body, "	FragColor = %s;\n", InputSymbols[0].Data ) == false )
+		goto OnError;
+
+	Result = true;
+
+OnError:
+	for ( unsigned InputIndex = 0; InputIndex < Node->InputCount; ++InputIndex )
+		{
+		StringBuilder_Destroy ( &InputSymbols[InputIndex] );
+		}
+	return Result;
 	}

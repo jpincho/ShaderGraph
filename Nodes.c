@@ -381,7 +381,7 @@ sgNodeHandle sgAddSkinning ( const sgGraphHandle GraphHandle )
 	SetPin ( &Node->Outputs[0], "Position", sgValueType_Vec3 );
 	SetPin ( &Node->Outputs[1], "Normal", sgValueType_Vec3 );
 	Node->OutputCount = 2;
-	Node->ArrayCount = 50;// Default 50 bones
+	Node->ArrayCount = Node->Skinning.BoneCount = 50;// Default 50 bones
 	return GetHandleFromNode ( Node );
 	}
 
@@ -395,6 +395,7 @@ bool sgSetSkinningBoneCount ( const sgGraphHandle GraphHandle, const sgNodeHandl
 	if ( Node->Type != sgNodeType_Skinning )
 		return false;
 	Node->ArrayCount = BoneCount;
+	Node->Skinning.BoneCount = BoneCount;
 	return true;
 	}
 
@@ -405,7 +406,7 @@ unsigned sgGetSkinningBoneCount ( const sgGraphHandle GraphHandle, const sgNodeH
 	sgNode *Node = GetNodeFromHandle ( NodeHandle );
 	if ( Node->Type != sgNodeType_Skinning )
 		return 0;
-	return Node->ArrayCount;
+	return Node->Skinning.BoneCount;
 	}
 
 static sgValueType MultiplyOutputType ( const sgValueType A, const sgValueType B )

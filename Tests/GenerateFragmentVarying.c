@@ -56,7 +56,7 @@ int main ( void )
 		goto End;
 		}
 
-	if ( ( strstr ( VertexShader, "out vec4 v_Color" ) == NULL ) || ( strstr ( VertexShader, "v_Color = Color" ) == NULL ) )
+	if ( ( strstr ( VertexShader, "out vec4 v_Color" ) == NULL ) || ( strstr ( VertexShader, "v_Color = a_Color" ) == NULL ) )
 		{
 		LOG_ERROR ( "Vertex shader missing color varying pass-through\n%s\n", VertexShader );
 		TestResult = -1;

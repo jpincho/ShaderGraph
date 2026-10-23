@@ -157,8 +157,6 @@ static sgNode *GetFirstNodeOfTypeInStage ( const sgGraph *Graph, const sgNodeTyp
 static bool AppendDeclarations ( StringBuilder *Header, const sgGraph *Graph, const sgShaderStage Stage )
 	{
 	unsigned AttributeLocation = 0;
-	unsigned SkinningBoneCount = 0;
-	bool UsesSkinning = false;
 
 	for ( unsigned Index = 0; Index < Graph->Nodes.Count; ++Index )
 		{
@@ -170,7 +168,7 @@ static bool AppendDeclarations ( StringBuilder *Header, const sgGraph *Graph, co
 			{
 			if ( Stage == sgStage_Vertex )
 				{
-				if ( StringBuilder_Appendf ( Header, "layout ( location = %u ) in %s %s;\n",
+				if ( StringBuilder_Appendf ( Header, "layout ( location = %u ) in %s a_%s;\n",
 				                             AttributeLocation, sgValueTypeToGLSL ( Node->Outputs[0].ValueType ), Node->Name ) == false )
 					return false;
 				++AttributeLocation;
@@ -194,42 +192,36 @@ static bool AppendDeclarations ( StringBuilder *Header, const sgGraph *Graph, co
 			{
 			if ( Node->ArrayCount > 0 )
 				{
-				if ( StringBuilder_Appendf ( Header, "uniform %s %s[%u];\n",
+				if ( StringBuilder_Appendf ( Header, "uniform %s u_%s[%u];\n",
 				                             sgValueTypeToGLSL ( Node->Outputs[0].ValueType ), Node->Name, Node->ArrayCount ) == false )
 					return false;
 				}
 			else
 				{
-				if ( StringBuilder_Appendf ( Header, "uniform %s %s;\n",
+				if ( StringBuilder_Appendf ( Header, "uniform %s u_%s;\n",
 				                             sgValueTypeToGLSL ( Node->Outputs[0].ValueType ), Node->Name ) == false )
 					return false;
 				}
 			}
-		else if ( Node->Type == sgNodeType_Skinning )
-			{
-			const unsigned BoneCount = sgGetSkinningBoneCount ( GetHandleFromGraph ( Graph ), GetHandleFromNode ( Node ) );
-			if ( BoneCount == 0 )
-				{
-				LOG_ERROR ( "Skinning node '%s' has a bone count of 0", Node->Name );
-				return false;
-				}
-			UsesSkinning = true;
-			if ( BoneCount > SkinningBoneCount )
-				SkinningBoneCount = BoneCount;
-			}
 		}
 
-	if ( UsesSkinning )
+	if ( Stage == sgStage_Vertex )
 		{
-		if ( StringBuilder_Appendf ( Header, "uniform mat4 uBoneMatrices[%u];\n", SkinningBoneCount ) == false )
-			return false;
+		const sgNode *SkinningNode = GetFirstNodeOfTypeInStage ( Graph, sgNodeType_Skinning, sgStage_Vertex );
+		if ( SkinningNode != NULL )
+			{
+			if ( StringBuilder_Append ( Header, "\n" ) == false )
+				return false;
+			if ( AddGLSLDeclaration_Skinning ( Header, SkinningNode, sgStage_Vertex ) == false )
+				return false;
+			}
 		}
 
 	if ( Stage == sgStage_Fragment )
 		{
 		if ( StringBuilder_Append ( Header, "out vec4 FragColor;\n" ) == false )
 			return false;
-		sgNode *BlinnPhongNode = GetFirstNodeOfTypeInStage ( Graph, sgNodeType_BlinnPhong, sgStage_Fragment );
+		const sgNode *BlinnPhongNode = GetFirstNodeOfTypeInStage ( Graph, sgNodeType_BlinnPhong, sgStage_Fragment );
 		if ( BlinnPhongNode != NULL )
 			{
 			if ( StringBuilder_Append ( Header, "\n" ) == false )
@@ -239,21 +231,6 @@ static bool AppendDeclarations ( StringBuilder *Header, const sgGraph *Graph, co
 			}
 		}
 
-	return true;
-	}
-
-static bool AppendVaryingPassThrough ( StringBuilder *Body, const sgGraph *Graph )
-	{
-	for ( unsigned Index = 0; Index < Graph->Nodes.Count; ++Index )
-		{
-		const sgNode *Node = ( sgNode* ) PointerArray_Get ( &Graph->Nodes, Index );
-		if ( Node->Type != sgNodeType_Attribute )
-			continue;
-		if ( Node->UsedInShaderStage[sgStage_Fragment] == false )
-			continue;
-		if ( StringBuilder_Appendf ( Body, "\tv_%s = %s;\n", Node->Name, Node->Name ) == false )
-			return false;
-		}
 	return true;
 	}
 
@@ -267,7 +244,10 @@ static char *BuildVertexShaderSource ( const sgGraph *Graph, const GLSLGenerator
 		return NULL;
 		}
 
-	StringBuilder Source = {0};
+	StringBuilder Source;
+	StringBuilder OutputName;
+	StringBuilder_Initialize ( &Source );
+	StringBuilder_Initialize ( &OutputName );
 
 	if ( ( StringBuilder_Appendf ( &Source, "#version %u core\n\n", EncodeGLSLVersion ( Options.GLSLVersion.Major, Options.GLSLVersion.Minor ) ) == false ) ||
 	        ( AppendDeclarations ( &Source, Graph, sgStage_Vertex ) == false ) ||
@@ -283,8 +263,20 @@ static char *BuildVertexShaderSource ( const sgGraph *Graph, const GLSLGenerator
 			goto OnError;
 		}
 
-	if ( AppendVaryingPassThrough ( &Source, Graph ) == false )
-		goto OnError;
+	// Adds all varying statements
+	for ( unsigned Index = 0; Index < Graph->Nodes.Count; ++Index )
+		{
+		const sgNode *Node = ( sgNode* ) PointerArray_Get ( &Graph->Nodes, Index );
+		if ( Node->Type != sgNodeType_Attribute )
+			continue;
+		if ( Node->UsedInShaderStage[sgStage_Fragment] == false )
+			continue;
+		if ( GetOutputSymbolName ( &OutputName, Node, 0, sgStage_Vertex ) == false )
+			goto OnError;
+		if ( StringBuilder_Appendf ( &Source, "\tv_%s = %s;\n", Node->Name, OutputName.Data ) == false )
+			goto OnError;
+		StringBuilder_Destroy ( &OutputName );
+		}
 
 	if ( StringBuilder_Append ( &Source, "}\n" ) == false )
 		goto OnError;
@@ -293,6 +285,7 @@ static char *BuildVertexShaderSource ( const sgGraph *Graph, const GLSLGenerator
 	return StringBuilder_Take ( &Source );
 
 OnError:
+	StringBuilder_Destroy ( &OutputName );
 	PointerArray_Destroy ( &Ordered );
 	StringBuilder_Destroy ( &Source );
 	return NULL;
@@ -346,7 +339,7 @@ GLSLGeneratorOptions sgGetDefaultGLSLGeneratorOptions ( void )
 		}
 	return Options;
 	}
-	
+
 bool sgGenerateGLSL ( const sgGraphHandle GraphHandle, const GLSLGeneratorOptions Options, char **OutVertexShader, char **OutFragmentShader )
 	{
 	if ( ( OutVertexShader == NULL ) || ( OutFragmentShader == NULL ) )
